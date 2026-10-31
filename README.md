@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.18-dev — NPCs agacham, tentam correr, escalam janelas seguras e compartilham territórios definidos no mapa.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.19-dev — hotfix para exceções repetitivas do leitor do mapa e memória de ameaça que mantinha FLEE sem contato visual.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -19,6 +19,14 @@ git -C "$env:USERPROFILE\Zomboid\mods\SupraNPC" pull origin main
 ```
 
 O diretório `SupraNPC/42/mod.info` fica dentro da raiz clonada. Ative o mod no menu Mods do jogo.
+
+## Correção 0.1.19-dev — diagnóstico de console.txt real
+
+O teste com Project Zomboid B42.13.1 revelou **352 exceções repetidas** por tentar consultar `getSymbolCount` sobre o objeto Java não exposto de `MapItem:getSymbols()`. O código agora usa somente a API UIWorldMap de símbolos acessível pelo Lua e **nunca indexa métodos diretamente no objeto bruto WorldMapSymbols**. Se essa API não estiver disponível, mantém os dados de território do save sem gerar erro.
+
+A autodefesa também liberará o estado `FLEE` após **4,5 segundos sem novo avistamento** de ameaça; a memória visual continua válida durante esse intervalo e não é renovada só pela presença do objeto zombie na memória.
+
+**Importante:** isso corrige o flood de exceções e a memória de fuga. Não significa que a leitura dos dois marcadores BASE já esteja validada em todas as interfaces de mapa B42.13.1. [Checklist de teste 0.1.19](docs/TEST_CHECKLIST_0.1.19.md).
 
 ## Novidades 0.1.18-dev — furtividade, movimento e base no mapa
 
