@@ -65,6 +65,37 @@ function W.pickAround(x,y,z,actor)
     end
     return best
 end
+-- Escolhe a casa LIVRE mais distante da ameaca, no sentido de fuga.
+-- Nunca gera tiles nao carregados e nunca teleporta.
+function W.pickRetreat(actor,threat,steps)
+    if not actor or not threat or not getCell then return nil end
+    local cell=getCell()
+    if not cell then return nil end
+    local ax,ay,az=actor:getX(),actor:getY(),math.floor(actor:getZ())
+    local zx,zy=threat:getX(),threat:getY()
+    local dx,dy=ax-zx,ay-zy
+    local length=math.sqrt(dx*dx+dy*dy)
+    if length<0.01 then dx,dy,length=1,0,1 end
+    dx,dy=dx/length,dy/length
+    steps=math.max(1,math.min(5,math.floor(tonumber(steps) or 2)))
+    local best,score=nil,-math.huge
+    local bx,by=math.floor(ax),math.floor(ay)
+    for ox=-steps,steps do
+        for oy=-steps,steps do
+            local projection=ox*dx+oy*dy
+            if projection>0.6 and ox*ox+oy*oy<=steps*steps then
+                local square=call(cell,"getGridSquare",bx+ox,by+oy,az)
+                if W.free(square,actor) then
+                    local away=(bx+ox+0.5-zx)^2+(by+oy+0.5-zy)^2
+                    local sideways=math.abs(ox*dy-oy*dx)
+                    local value=away-sideways*0.6
+                    if value>score then best,score=square,value end
+                end
+            end
+        end
+    end
+    return best
+end
 function W.pickNear(player, actor)
     if not player or not actor or not getCell then return nil end
     local cell = getCell()
