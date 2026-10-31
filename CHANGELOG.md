@@ -1,5 +1,16 @@
 # Changelog — SupraNPC
 
+## 0.1.12-dev — 2026-10-31
+
+- **Correção arquitetural:** retirado o controlador manual de `PathFindBehavior2:update()`; caminhar agora é uma `ISWalkToTimedAction` na `ISTimedActionQueue` separada por ator, adaptada do `ArayHumanNPCTest/ArayHumanWalking.lua`. Sem teleporte, zumbi ou interferência deliberada na fila do jogador.
+- **Ordens:** Seguir, Aguardar e Guardar ponto agora iniciam/cancelam ações nativas; Aguardar força parada e remove apenas a ação do NPC, inclusive quando existe caminho ativo.
+- **Navegação:** escolhe tile próximo livre, acompanha alvo móvel, inspeciona falhas, cancela timeout e falta de progresso. Não confundir estado da UI com movimento confirmado.
+- **Saúde:** fome, sede, dor e energia passam a ler `Stats:get(CharacterStat.*)` na B42; mantido fallback anterior.
+- **Falas:** bolhas de texto do jogador ao dar cada ordem ou modificar postura, com frases relacionadas ao NPC e à ordem; inspiradas no `ArayHumanSpeechBubble.lua`.
+- **UI:** adiciona estados operacionais MOVING / WAITING / HOLD / NEAR / FAILED / BLOCKED ao lado da ordem solicitada.
+- **QA:** testes isolados novos/ajustados e checklist 0.1.12. Testes CI em mocks passam; engine B42.13.1 ainda aguarda validação de movimento.
+
+
 ## 0.1.11-dev — 2026-10-31
 
 - **Navegação:** o comando seguir/guardar requisita rotas diretamente ao PathFindBehavior2 e chama update por tick; agora registra resultado, falhas e falta de progresso. Aguardar cancela a rota anterior.
