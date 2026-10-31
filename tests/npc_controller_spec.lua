@@ -6,7 +6,12 @@ local Controller = require("SupraNPC/NPCController")
 Core.isSolo = function() return true end
 
 local md = {SupraNPC_ID="npc-A",SupraNPC_IsNPC=true}
+local behaviour = { updates = 0, update = function(self)
+    self.updates = self.updates + 1
+    return "Working"
+end }
 local npc = {
+    getPathFindBehavior2 = function() return behaviour end,
     getModData = function() return md end,
     getX = function() return 10 end,
     getY = function() return 10 end,
@@ -38,7 +43,7 @@ assert(Controller.order("npc-A","IDLE",player))
 assert(md.SupraNPC_Order == "IDLE")
 assert(Controller.order("npc-A","FOLLOW",player))
 for i=1,45 do Controller.update(player) end
-assert(npc.followRequests == 1)
+assert(npc.followRequests == 1 and behaviour.updates > 0)
 assert(Controller.order("npc-A","GUARD",player,"PLAYER"))
 for i=1,45 do Controller.update(player) end
 assert(npc.guardX == 15 and npc.guardY == 18)
