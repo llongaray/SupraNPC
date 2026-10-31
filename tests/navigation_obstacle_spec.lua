@@ -69,6 +69,9 @@ local door=portal("door",false,true)
 local nextSq,reason=N.next(actor,3.5,1.5,0,"npc",free,1.3)
 assert(nextSq==tile(1,1) and reason=="waypoint")
 actor.x=1.5
+-- Escape must never open closed doors, even when unlocked.
+nextSq,reason=N.next(actor,3.5,1.5,0,"npc",free,1.3,true)
+assert(nextSq==nil and reason=="no accessible route" and door.tries==0)
 nextSq,reason=N.next(actor,3.5,1.5,0,"npc",free,1.3)
 assert(nextSq==nil and reason=="door opened" and door.open and door.tries==1)
 assert(N.attackAccessible(actor,target))
