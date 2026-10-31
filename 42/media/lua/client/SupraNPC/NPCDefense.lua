@@ -190,7 +190,7 @@ function D.observe(actor,player,team)
                         seen[target]=true
                         if zombie(target) and call(target,"getCurrentSquare")==sq then
                             local dist=distance(actor,target)
-                            if dist and dist<=D.RADIUS then
+                            if dist and dist<=D.RADIUS and canSee(actor,target,dist) then
                                 local down=fallen(target)
                                 if down then
                                     obs.down=obs.down+1
