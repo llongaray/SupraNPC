@@ -8,6 +8,7 @@ local Adapter = require("SupraNPC/SpawnAdapter")
 local Renderer = require("SupraNPC/Renderer")
 local Controller = require("SupraNPC/NPCController")
 local NPCUI = require("SupraNPC/NPCUI")
+local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 
 local Boot = { ticks = 0, lastNotice = nil, interval = 90, maxRetries = 3 }
 
@@ -132,6 +133,8 @@ local function onTick()
     if player then Controller.update(player) end
     if Boot.ticks % Boot.interval ~= 0 then return end
     if not player or not player.getModData then return end
+    -- World map is player-owned and shared by this solo NPC team.
+    MapKnowledge.update(player)
     if Core.pendingRoster then storeNewRoster(player) end
     local data = player:getModData().SupraNPC
     if not data then return end
@@ -194,6 +197,7 @@ local function onGameStart()
     Renderer.reset()
     Controller.clear()
     NPCUI.close()
+    MapKnowledge.reset()
     local player = currentPlayer()
     if player and player.getModData then
         if Core.pendingRoster then storeNewRoster(player) end
@@ -213,6 +217,7 @@ if Events then
         Renderer.reset()
         Controller.clear()
         NPCUI.close()
+        MapKnowledge.reset()
         TeamSetup.install()
         TeamFlow.install()
         TeamFlow.bindButtons()
