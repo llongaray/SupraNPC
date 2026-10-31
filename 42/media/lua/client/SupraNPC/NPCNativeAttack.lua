@@ -90,6 +90,15 @@ function A.execute(actor,target,kind,player,team)
     return false,"IsoPlayer.DoAttack unavailable" end
  local ok,reason=pcall(function()
     if actor.faceThisObject then actor:faceThisObject(target) end
+    -- B42 distinguishes permission to initiate a hand-to-hand action from
+    -- permission to perform it. Extra IsoPlayer entities may be missing
+    -- either permission. Enable only on the owned NPC before native attack.
+    if actor.setAuthorizedHandToHandAction then
+        actor:setAuthorizedHandToHandAction(true)
+    end
+    if actor.setAuthorizedHandToHand then
+        actor:setAuthorizedHandToHand(true)
+    end
     -- Short range/ground use normal attack selection. For a close standing
     -- zombie, request shove explicitly; do not simulate knockDown().
     if actor.setDoShove then actor:setDoShove(kind=="SHOVE") end
@@ -100,7 +109,8 @@ function A.execute(actor,target,kind,player,team)
  if actor.setDoShove then pcall(function() actor:setDoShove(false) end) end
  if not ok then return false,"DoAttack error: "..tostring(reason) end
  if reason~=true then return false,"DoAttack rejected: "..tostring(reason) end
- Core.log("NATIVE_ATTACK "..kind.." accepted")
+ -- Detailed per-tick combat feedback is aggregated in NPCDefense.pulse;
+ -- avoid generating hundreds of identical log lines per fight.
  return true,"native attack requested"
 end
 return A
