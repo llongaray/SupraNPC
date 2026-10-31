@@ -1,0 +1,20 @@
+name: Lua 5.1 syntax and unit tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Check B42 layout and syntax
+        run: |
+          test -f 42/mod.info
+          test -d common
+          find 42/media/lua -name '*.lua' -type f -print0 | xargs -0 -n 1 luac5.1 -p
+      - name: Unit tests (game-independent logic)
+        run: lua5.1 tests/roster_spec.lua
