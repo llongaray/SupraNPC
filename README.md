@@ -2,7 +2,7 @@
 
 Mod open source para **Project Zomboid Build 42**, com desenvolvimento direcionado à **B42.13.1**. Objetivo: permitir criar companheiros NPC antes de começar o jogo, spawná-los próximos ao jogador e comandá-los com lógica determinística (sem IA externa).
 
-> **Estado: v0.1.1-dev / protótipo inicial.** O jogo ainda não foi utilizado para validar esta implementação. O mod já tem estrutura B42, seletor de quantidade, fichas serializáveis, lógica de ordens e adaptadores experimentais. **Não há garantia de NPCs funcionais neste commit.** O fluxo de criação sequencial agora está implementado, mas precisa ser validado no jogo; o spawn estável ainda é uma etapa posterior.
+> **Estado: v0.1.2-dev / protótipo inicial.** O jogo ainda não foi utilizado para validar esta implementação. O mod já tem estrutura B42, seletor de quantidade, fichas serializáveis, lógica de ordens e adaptadores experimentais. **Não há garantia de NPCs funcionais neste commit.** O fluxo de criação sequencial agora está implementado, mas precisa ser validado no jogo; o spawn estável ainda é uma etapa posterior.
 
 ## Instalar via git clone diretamente na pasta `mods`
 
@@ -76,7 +76,7 @@ GNU General Public License v2.0 — veja [LICENSE](LICENSE).
 
 ## Teste de regressão B42.13.1 — criação de 2 NPCs
 
-Checklist detalhado: [docs/TEST_CHECKLIST_0.1.1.md](docs/TEST_CHECKLIST_0.1.1.md).
+Checklist detalhado: [docs/TEST_CHECKLIST_0.1.2.md](docs/TEST_CHECKLIST_0.1.2.md).
 
 1. Execute `git pull` na pasta do mod e **reinicie completamente o jogo**.
 2. Crie **nova partida** com somente SupraNPC ativo; escolha **2** no seletor.
@@ -87,3 +87,7 @@ Checklist detalhado: [docs/TEST_CHECKLIST_0.1.1.md](docs/TEST_CHECKLIST_0.1.1.md
 7. Se alguma transição falhar, envie `%USERPROFILE%\\Zomboid\\console.txt`, especialmente linhas com `[SupraNPC]`.
 
 **Atenção:** como `EXPERIMENTAL_SPAWN=false`, os NPCs configurados ainda **não aparecerão no mundo**. Esta etapa valida o fluxo e a serialização das fichas, antes do desenvolvimento seguro do spawn real.
+
+## Correção de navegação do editor — 0.1.2-dev
+
+Correção da troca de avatar/descriptor entre jogador e NPCs, interceptação de próximo na tela de profissão, estados explícitos profissão→aparência e retorno seguro em falhas. A correção não significa que o spawn foi implementado ou validado. Para testar, use [o roteiro da v0.1.2-dev](docs/TEST_CHECKLIST_0.1.2.md) e envie o `console.txt` se a mensagem ERROR aparecer.
