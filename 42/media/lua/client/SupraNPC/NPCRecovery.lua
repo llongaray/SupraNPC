@@ -38,9 +38,21 @@ local function cell()
 end
 local function locate(id,profile)
     local actor=Adapter.get(id)
-    if actor and call(actor,"isDead")~=true then return actor end
+    if actor and call(actor,"isDead")==true then
+        profile.deceased=true
+        profile.humanSpawned=false
+        Core.log("RECOVERY: NPC morto detectado; nao recuperar "..id)
+        return nil
+    end
+    if actor then return actor end
     local existing=Adapter.findExisting(cell(),id)
-    if existing and call(existing,"isDead")~=true then
+    if existing and call(existing,"isDead")==true then
+        profile.deceased=true
+        profile.humanSpawned=false
+        Core.log("RECOVERY: corpo encontrado; bloquear recriacao "..id)
+        return nil
+    end
+    if existing then
         Adapter.attach(id,existing)
         Controller.attach(profile,existing)
         Core.log("RECOVERY: existente reanexado "..id)
