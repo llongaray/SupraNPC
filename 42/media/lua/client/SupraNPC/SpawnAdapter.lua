@@ -158,16 +158,17 @@ local function dressFromProfile(actor, profile)
         Core.log("NPC " .. profile.id .. ": sem roupas registradas, tentando kit basico")
         outfit = BASIC_CLOTHES
     end
-    local wornItems = call(actor, "getWornItems")
-    local already = tonumber(call(wornItems, "size")) or 0
-    if already > 0 then
-        Core.log("NPC " .. profile.id .. ": roupas herdadas do SurvivorDesc=" ..
-            tostring(already) .. "; sem duplicar no inventario")
+    local missing = Wardrobe.missing(actor, outfit)
+    if not missing then
+        Core.log("NPC " .. profile.id .. ": snapshot de roupas invalido")
         return
     end
-    local worn, failed, reason = Wardrobe.equip(actor, outfit)
+    Core.log("NPC " .. profile.id .. ": pecas desejadas=" ..
+        tostring(#outfit) .. " faltando=" .. tostring(#missing))
+    if #missing == 0 then return end
+    local worn, failed, reason = Wardrobe.equip(actor, missing)
     Core.log("NPC " .. profile.id .. ": vestidos=" .. tostring(worn) ..
-        "/" .. tostring(#outfit) .. " falhas=" .. tostring(failed) ..
+        "/" .. tostring(#missing) .. " falhas=" .. tostring(failed) ..
         (reason and (" motivo=" .. tostring(reason)) or ""))
     -- O NPC deve continuar existindo mesmo se uma peca for incompatível.
 end
