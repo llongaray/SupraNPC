@@ -1,6 +1,6 @@
 # SupraNPC
 
-**Versão atual: 0.1.23-dev — correção de erro recorrente no HUD/tecla de voz, mantendo o combate da 0.1.22.** O reconhecimento por microfone **ainda não está integrado**: o motor Lua do jogo não oferece speech-to-text. O painel indica `MIC SEM STT` em vez de fingir que está gravando. Enviar um comando por texto faz o NPC responder sem aguardar alertas antigos. [Documentação de comandos](docs/VOICE_COMMANDS.md).
+**Versão atual: 0.1.24-dev — recuperação de NPC em saves e suporte a tecla de mouse (10003).** O reconhecimento por microfone **ainda não está integrado**: o motor Lua do jogo não oferece speech-to-text. O painel indica `MIC SEM STT` em vez de fingir que está gravando. Enviar um comando por texto faz o NPC responder sem aguardar alertas antigos. [Documentação de comandos](docs/VOICE_COMMANDS.md).
 
 **Novidades 0.1.22:** o estado AGGRESSIVE não usa mais a pausa SHOVE/BACKSTEP/WAIT; enquanto o NPC combate, um pulso leve revisita o alvo a cada 3 ticks, sincronizado com a animação nativa e sem nova varredura de mundo. Zumbis atacando o jogador recebem prioridade, exceto quando o próprio NPC está em perigo imediato. **Experimental:** não é promessa de imunidade a mordidas, animação correta ou dano real; é indispensável validar no jogo B42.13.1 e anexar console.txt se ainda houver falhas.
 
