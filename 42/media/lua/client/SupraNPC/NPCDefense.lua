@@ -315,7 +315,8 @@ function D.update(entry,player,team)
     Speech.npcAlert(actor,"HELP")
  end
  if danger.retreat and not old.warnedRetreat then
-    Speech.npcAlert(actor,danger.unarmed and "UNARMED" or "HORDE",true)
+    Speech.npcAlert(actor,policy.stance=="PASSIVE" and "FLEE" or
+        (danger.unarmed and "UNARMED" or "HORDE"),true)
     old.warnedRetreat=true
  elseif not danger.retreat then old.warnedRetreat=false end
  -- A queda so e aceita apos a engine realmente reportar isOnFloor/isProne.
@@ -330,7 +331,8 @@ function D.update(entry,player,team)
  local down=obs.nearDown or 0
  local action,tactic=Tactics.plan(old.planner,{
     standing=standing,down=down,alertStanding=obs.standing,
-    alertDistance=obs.alertDistance,nearestDistance=obs.nearestDistance,
+    alertDistance=obs.alertDistance,alertDown=obs.down,
+    nearestDistance=obs.nearestDistance,
     nearestDownDistance=obs.nearestDownDistance,visible=obs.visible,
     downVisible=obs.downVisible,mustRetreat=danger.retreat,
      melee=obs.npcWeapon.category=="MELEE",engageRange=engageRange,
