@@ -55,6 +55,8 @@ local Walking={
     start=function() move.active=true;move.starts=move.starts+1;return true end
 }
 package.loaded["SupraNPC/NPCWalking"]=Walking
+package.loaded["SupraNPC/NPCNavigation"]={attackAccessible=function() return true end,next=function() return sq,"waypoint" end,clear=function() end}
+
 local Orders=require("SupraNPC/Orders")
 local D=require("SupraNPC/NPCDefense")
 local entry={actor=npc,profile={id="A"},state=Orders.new("FOLLOW")}
