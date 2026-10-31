@@ -121,6 +121,7 @@ function N.next(actor,tx,ty,tz,id,free,range)
  local first,last=1,1
  local marked={[bx..":"..by]=true}
  local best,bestD=nil,math.huge
+ local reached=false
  local targetSquare=call(cell,"getGridSquare",math.floor(tx),math.floor(ty),z)
  range=range or 1.3
  while first<=last and first<=N.maxVisited do
@@ -134,7 +135,7 @@ function N.next(actor,tx,ty,tz,id,free,range)
        goalVisible=N.canCross(node.sq,targetSquare,id,false)
      end
    end
-   if dd<=range and goalVisible then best=node;break end
+   if dd<=range and goalVisible then best=node;reached=true;break end
    if dd<bestD and goalVisible then best,bestD=node,dd end
    for _,d in ipairs(dirs) do
      local x,y=node.x+d[1],node.y+d[2]
@@ -152,6 +153,9 @@ function N.next(actor,tx,ty,tz,id,free,range)
        end
      end
    end
+ end
+ if not reached and math.sqrt((bx+0.5-tx)^2+(by+0.5-ty)^2)<limit-2 then
+    return nil,"no accessible route"
  end
  if not best or best==q[1] then
    return nil,best==q[1] and "already near" or "no accessible route"
