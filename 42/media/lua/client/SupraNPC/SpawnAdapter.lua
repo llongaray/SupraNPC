@@ -132,6 +132,16 @@ local function descriptorFor(profile)
             call(visual, "setSkinTextureIndex", app.skinIndex)
         end
     end
+    -- O editor original usa SurvivorDesc.setWornItem, antes de IsoPlayer.new.
+    -- A tentativa anterior apenas equipava itens apos construir o NPC,
+    -- quando o modelo nem sempre re-sincroniza os visuais.
+    local outfit = app.clothing
+    if Wardrobe.validate(outfit) and #outfit > 0 then
+        local count, failed = Wardrobe.dressDescriptor(desc, outfit)
+        Core.log("NPC " .. profile.id .. ": roupas no descriptor=" ..
+            tostring(count) .. "/" .. tostring(#outfit) ..
+            " falhas=" .. tostring(failed))
+    end
     return desc
 end
 
@@ -147,6 +157,13 @@ local function dressFromProfile(actor, profile)
     if not Wardrobe.validate(outfit) or #outfit == 0 then
         Core.log("NPC " .. profile.id .. ": sem roupas registradas, tentando kit basico")
         outfit = BASIC_CLOTHES
+    end
+    local wornItems = call(actor, "getWornItems")
+    local already = tonumber(call(wornItems, "size")) or 0
+    if already > 0 then
+        Core.log("NPC " .. profile.id .. ": roupas herdadas do SurvivorDesc=" ..
+            tostring(already) .. "; sem duplicar no inventario")
+        return
     end
     local worn, failed, reason = Wardrobe.equip(actor, outfit)
     Core.log("NPC " .. profile.id .. ": vestidos=" .. tostring(worn) ..
