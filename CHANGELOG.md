@@ -1,4 +1,13 @@
 # Changelog — SupraNPC
+## 0.1.20-dev — 2026-10-31
+
+- Novo `StancePolicy.lua`: PASSIVE evita combate (FLEE diante de qualquer zumbi visível dentro de 9 tiles); DEFENSIVE prefere SHOVE/SWING/PIN/STOMP e recua apenas diante de risco elevado; AGGRESSIVE persegue até 12 tiles, prioriza eliminar zumbis, nunca opta por fuga automática devido a desvantagem.
+- `NPCDefense.lua` passa os estados e o alcance da política ao planejador, com respeito a aliados, obstáculos e bloqueio de alvo.
+- `CombatTactics.lua`: PASSIVE jamais executa golpes, AGGRESSIVE não herda o estado escape, grupos e zumbis caídos ao longe continuam sendo perseguidos.
+- Mudança de postura em `NPCController.lua` reinicia estado de defesa e interrompe fuga anterior, preservando a ordem solicitada pelo jogador.
+- Menu de posturas e falas descrevem as prioridades. Novos testes `stance_policy_spec.lua`, integração em `risk_combat_spec.lua`, `combat_tactics_spec.lua` e `defense_controller_integration_spec.lua`.
+- **Pendente:** validar animações e aplicação de dano no Project Zomboid 42.13.1; modo AGGRESSIVE pode morrer contra hordas e não inclui IA de armas de fogo.
+
 ## 0.1.18-dev — 2026-10-31
 
 - Movimento IsoPlayer: WALK/SNEAK/RUN por setSneaking/setRunning, conforme risco, postura do player, distancia de FOLLOW e retirada; sem alterar o player nem usar velocidade artificial.
