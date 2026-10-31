@@ -12,6 +12,19 @@ local function descriptor(first, last)
     function d:setForename(s) self.first = s end
     function d:setSurname(s) self.last = s end
     function d:isFemale() return self.female end
+    function d:getWornItems()
+        return {
+            size = function() return 1 end,
+            get = function(_,index)
+                if index ~= 0 then return nil end
+                return {
+                    getItem = function()
+                        return { getFullType = function() return "Base.Tshirt_DefaultTEXTURE" end }
+                    end
+                }
+            end
+        }
+    end
     function d:getHumanVisual()
         return {
             getHairModel = function() return "Short" end,
@@ -128,6 +141,7 @@ assert(Flow.session.stage == "profession")
 assert(Core.pendingRoster.profiles[1].firstName == "Ana")
 assert(Core.pendingRoster.profiles[1].complete == true)
 assert(Core.pendingRoster.profiles[1].appearance.skinIndex == 2)
+assert(Core.pendingRoster.profiles[1].appearance.clothing[1].type == "Base.Tshirt_DefaultTEXTURE")
 assert(Core.pendingRoster.profiles[1].appearance.hairColor.r == 0.25)
 assert(Core.pendingRoster.profiles[1].appearance.hairColor.g == 0.5)
 assert(Core.pendingRoster.profiles[1].appearance.hairColor.b == 0.75)
