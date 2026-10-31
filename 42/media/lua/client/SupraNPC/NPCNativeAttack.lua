@@ -1,6 +1,7 @@
 -- Build 42 native melee input for IsoPlayer-backed NPCs.
 -- No direct damage here: the engine chooses swing, shove or ground attack.
 local Core=require("SupraNPC/Constants")
+local Perception=require("SupraNPC/NPCPerception")
 local A={CLOSE=1.02,MELEE_REACH=1.85,GROUND_REACH=1.35}
 local function get(o,k,...)
  if not o then return nil end
@@ -77,7 +78,7 @@ function A.execute(actor,target,kind,player,team)
  if not d or (kind=="GROUND" and chosen~="GROUND") or
     (kind=="SHOVE" and d>1.42) or (kind=="SWING" and d>A.MELEE_REACH) then
     return false,"out of reach" end
- if get(actor,"CanSee",target)~=true then return false,"target occluded" end
+ if not Perception.clearAdjacent(actor,target) then return false,"target occluded" end
  if otherAllyInArc(actor,target,player,team) then
     return false,"ally in swing arc" end
  if get(actor,"isAttacking")==true or get(actor,"isAttackStarted")==true then
