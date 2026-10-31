@@ -63,7 +63,22 @@ remote[p.id]=actor(p.id)
 R.reset()
 R.update(player,data,270)
 assert(actors[p.id]==remote[p.id] and spawns==2)
+-- An in-world corpse with this ID is not a missing/live companion.
+remote[p.id].dead=true
+actors={}
+p.deceased=false
+p.humanSpawned=true
+R.reset()
+R.update(player,data,900)
+assert(p.deceased and p.humanSpawned==false and spawns==2)
+-- Legacy save may contain a corpse but no deceased flag.
+p.deceased=false
+p.humanSpawned=true
+R.reset()
+assert(R.manual(player,data,p.id)==false and spawns==2)
 remote={}
+p.deceased=false
+p.humanSpawned=true
 -- Last recorded position is far away: don't recreate offscreen NPC.
 actors={}
 p.lastKnown={x=400,y=400,z=0}
