@@ -52,14 +52,38 @@ local function forward(a)
 end
 -- Close melee: CanSee may be false for a zombie behind the NPC.
 -- Never use this exception past adjacent, unblocked loaded squares.
+-- Extra IsoPlayer instances can report CanSee=false because their
+-- vision cache belongs to the local player. Use map line-of-sight instead
+-- of limiting NPC vision to 1.6 tiles. Closed doors/walls remain blocked.
 function P.clearAdjacent(actor,target)
  if call(actor,"CanSee",target)==true then return true end
  local d=distance(actor,target)
- if not d or d>1.6 then return false end
+ if not d or d>P.VIEW_RANGE then return false end
  local from=call(actor,"getCurrentSquare")
  local to=call(target,"getCurrentSquare")
  if not from or not to then return false end
  if from==to then return true end
+ local cell=getCell and getCell()
+ if cell and LosUtil and LosUtil.lineClear then
+    local ax,ay,az=call(actor,"getX"),call(actor,"getY"),call(actor,"getZ")
+    local bx,by,bz=call(target,"getX"),call(target,"getY"),call(target,"getZ")
+    if finite(ax) and finite(ay) and finite(az) and
+       finite(bx) and finite(by) and finite(bz) then
+       local ok,result=pcall(function()
+          return LosUtil.lineClear(cell,math.floor(ax),math.floor(ay),
+              math.floor(az),math.floor(bx),math.floor(by),math.floor(bz),false)
+       end)
+       if ok and result then
+          local label=tostring(result)
+          return label=="Clear" or label=="ClearThroughOpenDoor" or
+              label:match("%.Clear$")~=nil or
+              label:match("%.ClearThroughOpenDoor$")~=nil
+       end
+    end
+ end
+ -- When no LOS API is exposed, allow only verified adjacent squares,
+ -- not a guess that the NPC can see through a wall 10 tiles away.
+ if d>1.6 then return false end
  return call(from,"isAdjacentTo",to)==true and
      call(from,"isBlockedTo",to)==false
 end
