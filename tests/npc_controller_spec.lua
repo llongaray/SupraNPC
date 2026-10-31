@@ -68,4 +68,17 @@ assert(Controller.get("npc-A").state.requested=="FOLLOW")
 Adapter.actors["npc-A"]=nil
 assert(not Controller.attach(profile,npc))
 Controller.clear()
+-- With a live aggressive encounter, close-range combat must be evaluated
+-- on every tick rather than on the 15-tick navigation/planning schedule.
+Adapter.actors["npc-A"]=npc
+assert(Controller.attach(profile,npc))
+assert(Controller.stance("npc-A","AGGRESSIVE"))
+local Defense=require("SupraNPC/NPCDefense")
+Defense.STATES["npc-A"]={entry=Controller.get("npc-A")}
+local pulses,originalPulse=0,Defense.pulse
+Defense.pulse=function() pulses=pulses+1 end
+for i=1,10 do Controller.update(player) end
+assert(pulses==10,"aggressive pulse skipped engine ticks")
+Defense.pulse=originalPulse
+Controller.clear()
 print("[SupraNPC] npc_controller_spec: OK")
