@@ -176,8 +176,15 @@ local function restorePlayer()
     local s = screen()
     if not s then return end
     s.desc = session.playerDescriptor
-    if session.playerAvatar then s.avatar = session.playerAvatar end
-    attachAvatar(s)
+    if session.playerAvatar then
+        s.avatar = session.playerAvatar
+        local editor = s.charCreationMain
+        if editor and editor.avatarPanel and editor.setAvatarFromUI then
+            editor:setAvatarFromUI()
+        end
+    else
+        attachAvatar(s)
+    end
     restoreProfession(session.playerProfession)
     local editor = s.charCreationMain
     if editor and editor.forenameEntry and editor.surnameEntry then
@@ -250,10 +257,22 @@ function Flow.onMainClick(creation, button, x, y, original)
             return true
         end
         if session.index < session.total then
-            local moved, errorText = pcall(enterNPC, session.index + 1)
+            local main = screen()
+            local priorDesc, priorAvatar = main.desc, main.avatar
+            local priorIndex = session.index
+            local moved, errorText = pcall(enterNPC, priorIndex + 1)
             if not moved then
                 Core.log("Falha ao abrir proximo NPC: " .. tostring(errorText))
                 Flow.error = tostring(errorText)
+                -- Rollback: o clique nunca pode deixar as duas telas ocultas.
+                main.desc, main.avatar = priorDesc, priorAvatar
+                session.index = priorIndex
+                session.stage = "appearance"
+                pcall(function()
+                    main.charCreationProfession:setVisible(false)
+                    main.charCreationMain:setVisible(true)
+                end)
+                Core.log("Rollback: retornando a APARENCIA NPC " .. priorIndex)
             end
             return true
         end
