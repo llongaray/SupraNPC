@@ -100,6 +100,7 @@ local function captureNPC(index, creation)
         gender = profile.female and "female" or "male"
     }
     profile.status = { health = 100 }
+    profile.complete = true
     Core.log("Ficha NPC " .. index .. " finalizada: " ..
         profile.firstName .. " " .. profile.lastName .. " / " .. profile.profession)
 end
@@ -113,6 +114,19 @@ local function enterNPC(index)
     s.desc = SurvivorFactory.CreateSurvivor()
     if not s.desc then error("SurvivorFactory.CreateSurvivor retornou nil") end
     resetProfession()
+
+    -- Os widgets de nome pertencem à tela reutilizada; limpar explicitamente
+    -- os valores do NPC anterior para não copiar nome/sobrenome por engano.
+    local profile = Core.pendingRoster and Core.pendingRoster.profiles[index]
+    if not profile then error("ficha NPC " .. tostring(index) .. " indisponivel") end
+    s.desc:setForename(profile.firstName)
+    s.desc:setSurname(profile.lastName)
+    local editor = s.charCreationMain
+    if editor.forenameEntry and editor.surnameEntry then
+        editor.forenameEntry:setText(profile.firstName)
+        editor.surnameEntry:setText(profile.lastName)
+    end
+
     Flow.session.index = index
     s.charCreationProfession:setVisible(true)
     Flow.error = nil
@@ -147,6 +161,12 @@ local function cancelNPC()
 end
 
 local function finishNPCs(creation, original, button, x, y)
+    local valid, reason = Roster.validate(Core.pendingRoster, true)
+    if not valid then
+        Flow.error = tostring(reason)
+        Core.log("Impedindo carregamento: " .. Flow.error)
+        return true
+    end
     -- Restaurar a profissao e OS TRACOS do jogador antes do OnInitWorld.
     -- Vanilla le a lista de traits da tela, nao do descriptor de NPC.
     restorePlayer()
@@ -176,6 +196,12 @@ function Flow.onMainClick(creation, button, x, y, original)
         if not ok then
             Core.log("Erro ao finalizar NPC: " .. tostring(err))
             Flow.error = tostring(err)
+            return true
+        end
+        local valid, reason = Roster.validate(Core.pendingRoster)
+        if not valid then
+            Flow.error = tostring(reason)
+            Core.log("Ficha invalida: " .. Flow.error)
             return true
         end
         if session.index < session.total then
