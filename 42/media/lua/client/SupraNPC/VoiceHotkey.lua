@@ -43,6 +43,14 @@ local function physicalKey(key)
     return type(key)=="number" and key==key and key%1==0 and
         key>=1 and key<=255
 end
+-- PZ B42 encodes mouse buttons with BTN_OFFSET (10000); 10003
+-- is Mouse Btn 3, not a broken keyboard key. Never pass it to Keyboard API.
+local function mouseButton(key)
+    if type(key)=="number" and key%1==0 and key>=10000 and key<=10007 then
+        return key-10000
+    end
+    return nil
+end
 local function rawBinding()
     local c=gameCore()
     if not c or not c.getKey then return 0 end
@@ -51,12 +59,14 @@ local function rawBinding()
 end
 function PTT.getKey()
     local key=rawBinding()
-    return physicalKey(key) and key or 0
+    return (physicalKey(key) or mouseButton(key)~=nil) and key or 0
 end
 local lastLabelKey,lastLabel=nil,nil
 function PTT.keyLabel()
     local key=rawBinding()
     if key==0 then return "SEM TECLA" end
+    local mouse=mouseButton(key)
+    if mouse then return "MOUSE BTN "..mouse end
     if not physicalKey(key) then return "RECONFIGURAR" end
     -- Cache results for each binding; render() is invoked every frame.
     if lastLabelKey==key and lastLabel then return lastLabel end
@@ -148,13 +158,37 @@ function PTT.reset()
     if PTT.active then PTT.release() end
     PTT.active=false
     PTT.keyDown=nil
+    PTT.mouseWasDown=false
+    PTT.lastPolledMouse=nil
     PTT.state=PTT.recognizer and "READY" or "UNAVAILABLE"
 end
 function PTT.onKey(key)
     local bound=PTT.getKey()
-    if bound~=0 and key==bound then PTT.press(key) end
+    -- Mouse bindings are handled via Mouse.isButtonDown, not key events.
+    if physicalKey(bound) and key==bound then PTT.press(key) end
 end
 function PTT.tick()
+    local bound=PTT.getKey()
+    local button=mouseButton(bound)
+    if button~=nil then
+        if PTT.lastPolledMouse~=bound then
+            PTT.mouseWasDown=false
+            PTT.lastPolledMouse=bound
+        end
+        if Mouse and Mouse.isButtonDown then
+            local ok,down=pcall(function() return Mouse.isButtonDown(button) end)
+            if ok and type(down)=="boolean" then
+                if down and not PTT.mouseWasDown then PTT.press(bound) end
+                if not down and PTT.mouseWasDown and PTT.active then
+                    PTT.release()
+                end
+                PTT.mouseWasDown=down
+            end
+        end
+        return
+    end
+    PTT.mouseWasDown=false
+    PTT.lastPolledMouse=nil
     if not PTT.active then return end
     if type(isKeyDown)=="function" and PTT.keyDown then
         local ok,held=pcall(isKeyDown,PTT.keyDown)
