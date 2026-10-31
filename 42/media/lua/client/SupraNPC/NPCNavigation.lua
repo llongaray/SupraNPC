@@ -154,7 +154,8 @@ function N.tryNearbyWindow(actor,tx,ty,id)
      if edge.open then
        return N.tryClimbWindow(id,actor,edge,neighbor)
      elseif edge.canTry then
-       return N.tryOpen(id,actor,edge)
+       local opened,reason=N.tryOpen(id,actor,edge)
+       return opened,opened and "window opened" or reason
      end
    end
  end
