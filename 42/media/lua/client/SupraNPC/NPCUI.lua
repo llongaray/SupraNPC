@@ -3,6 +3,10 @@
 require("ISUI/ISPanel")
 require("ISUI/ISButton")
 require("ISUI/ISContextMenu")
+pcall(require, "ISUI/ISUI3DModel")
+-- ISNewHealthPanel e o mesmo painel corporal usado pelo ISHealthPanel
+-- vanilla, mas nao substituimos o painel global do jogador.
+if not ISNewHealthPanel then pcall(require, "ISHealthPanel") end
 local Core = require("SupraNPC/Constants")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Health = require("SupraNPC/Health")
@@ -26,7 +30,7 @@ end
 
 local Details = ISPanel:derive("SupraNPCDetails")
 function Details:new(id)
-    local x, y, w, h = 256, 100, 365, 344
+    local x, y, w, h = 300, 85, 535, 407
     local o = ISPanel:new(x, y, w, h)
     setmetatable(o, self)
     self.__index = self
@@ -44,6 +48,38 @@ function Details:createChildren()
     button:initialise()
     button:instantiate()
     self:addChild(button)
+    local actor = Adapter.get(self.id)
+    if actor and ISNewHealthPanel then
+        local ok, native = pcall(function()
+            local panel = ISNewHealthPanel:new(16,80,actor)
+            panel:initialise()
+            panel:instantiate()
+            panel:setVisible(true)
+            self:addChild(panel)
+            return panel
+        end)
+        if ok then
+            self.nativeBody = native
+        else
+            Core.log("UI corpo nativo indisponivel: " .. tostring(native))
+        end
+    end
+    if actor and ISUI3DModel then
+        local ok, preview = pcall(function()
+            local model = ISUI3DModel:new(381,83,139,229)
+            model:initialise()
+            model:instantiate()
+            model:setCharacter(actor)
+            model:setState("idle")
+            if IsoDirections then model:setDirection(IsoDirections.S) end
+            model:setIsometric(false)
+            self:addChild(model)
+            return model
+        end)
+        if ok then self.model = preview else
+            Core.log("UI preview medico indisponivel: " .. tostring(preview))
+        end
+    end
 end
 function Details:onClose()
     self:removeFromUIManager()
@@ -56,49 +92,58 @@ function Details:render()
         self.cached = Health.inspect(Adapter.get(self.id), profileById(self.id))
     end
     local result = self.cached
-    local white, green = {r=0.92,g=0.92,b=0.92}, {r=0.31,g=0.88,b=0.35}
-    self:drawText("SUPRANPC | AVALIACAO MEDICA", 13, 11, green.r,green.g,green.b,1,UIFont.Small)
-    self:drawText(result.name, 14, 49,1,1,1,1,UIFont.Medium)
-    local healthText = result.health and
-        (tostring(math.floor(result.health+0.5)) .. "%") or "Indisponivel"
-    self:drawText("Saude geral: " .. healthText, 14, 79,1,1,1,1,UIFont.Small)
-    self:drawRect(14, 103, 320, 13, 0.9, 0.20, 0.21, 0.24)
+    self:drawText("AVALIACAO MEDICA - " .. result.name,
+        15,12,1,1,1,1,UIFont.Medium)
+    self:drawRect(12,47,511,1,0.5,0.6,0.6,0.6)
+    if self.nativeBody then
+        self:drawText("Corpo / ferimentos",16,62,0.9,0.9,0.9,1,UIFont.Small)
+    else
+        self:drawText("Visual corporal vanilla indisponivel",16,84,
+            1,0.65,0.5,1,UIFont.Small)
+    end
+    if self.model then
+        self:drawText("Previa 3D do NPC",384,62,0.9,0.9,0.9,1,UIFont.Small)
+        self:drawRectBorder(375,80,148,239,1,0.4,0.4,0.4)
+    end
+    local tx=158
+    local hp = result.health and tostring(math.floor(result.health+0.5)) .. "%"
+        or "N/D"
+    self:drawText("Saude geral: " .. hp,tx,87,1,1,1,1,UIFont.Small)
+    self:drawRect(tx,115,195,12,0.9,0.25,0.25,0.25)
     if result.health then
         local frac = clamp01(result.health/100)
-        local r = frac < 0.4 and 0.92 or 0.25
-        local g = frac < 0.4 and 0.27 or 0.8
-        self:drawRect(14,103,320*frac,13,0.95,r,g,0.35)
+        self:drawRect(tx,115,195*frac,12,1,
+            frac < 0.4 and 0.86 or 0.22,
+            frac < 0.4 and 0.22 or 0.82,0.27)
+    end
+    local function fmt(v,mult)
+        return type(v) == "number" and
+            (tostring(math.floor(v*(mult or 1)+0.5)) ..
+             (mult and "%" or "")) or "N/D"
+    end
+    self:drawText("Dor: " .. fmt(result.pain),tx,145,1,1,1,1,UIFont.Small)
+    self:drawText("Fome: " .. fmt(result.hunger,100),tx,166,1,1,1,1,UIFont.Small)
+    self:drawText("Sede: " .. fmt(result.thirst,100),tx,187,1,1,1,1,UIFont.Small)
+    self:drawText("Energia: " .. fmt(result.endurance,100),tx,208,1,1,1,1,UIFont.Small)
+    self:drawText("Ferimentos: " .. #result.injuries,
+        tx,236,0.94,0.83,0.72,1,UIFont.Small)
+    if result.bleeding then
+        self:drawText("SANGRAMENTO",tx,258,1,0.3,0.3,1,UIFont.Small)
+    end
+    local offset=277
+    for i=1,math.min(3,#result.injuries) do
+        local lesion=result.injuries[i]
+        self:drawText(lesion.part .. ": " .. lesion.signs,
+            tx,offset,1,0.8,0.7,1,UIFont.Small)
+        offset=offset+20
     end
     if not result.available then
-        self:drawText(result.reason or "Dados indisponiveis", 14,137,1,0.65,0.45,1,UIFont.Small)
-        return
+        self:drawText(result.reason or "Sem dados da entidade",
+            tx,280,1,0.65,0.4,1,UIFont.Small)
     end
-    local function pct(n)
-        if n == nil then return "N/D" end
-        return tostring(math.floor(n * 100 + 0.5)) .. "%"
-    end
-    self:drawText("Dor: " .. (result.pain and tostring(math.floor(result.pain+0.5)) or "N/D") ..
-        "    Fome: " .. pct(result.hunger), 14,135,1,1,1,1,UIFont.Small)
-    self:drawText("Sede: " .. pct(result.thirst) ..
-        "    Energia: " .. pct(result.endurance),14,158,1,1,1,1,UIFont.Small)
-    self:drawText("Ferimentos visiveis: " .. tostring(#result.injuries) ..
-        (result.bleeding and "  | SANGRANDO" or ""),14,189,
-        result.bleeding and 1 or 0.8, result.bleeding and 0.25 or 0.9,0.3,1,UIFont.Small)
-    local row = 216
-    if #result.injuries == 0 then
-        self:drawText("Nenhuma lesao detectada",14,row,0.75,0.85,0.75,1,UIFont.Small)
-    else
-        for i = 1, math.min(#result.injuries,4) do
-            local injury = result.injuries[i]
-            self:drawText(injury.part .. " - " .. injury.signs,14,row,1,0.83,0.7,1,UIFont.Small)
-            row = row + 22
-        end
-        if #result.injuries > 4 then
-            self:drawText("+" .. (#result.injuries-4) .. " outras lesoes",14,row,0.8,0.8,0.8,1,UIFont.Small)
-        end
-    end
-    self:drawText("Somente consulta | sem tratamento automatico",14,320,
-        white.r*0.7,white.g*0.7,white.b*0.7,1,UIFont.Small)
+    self:drawRect(12,374,511,1,0.3,0.5,0.5,0.5)
+    self:drawText("Somente consulta | nao altera tratamento ou saude",
+        16,381,0.76,0.76,0.76,1,UIFont.Small)
 end
 
 function HUD.showHealth(id)
@@ -152,7 +197,7 @@ end
 local Sidebar = ISPanel:derive("SupraNPCSidebar")
 function Sidebar:new(roster)
     local count = #roster.profiles
-    local o = ISPanel:new(74, 160, 208, 41 + count * 59)
+    local o = ISPanel:new(74, 160, 271, 37 + count * 76)
     setmetatable(o, self)
     self.__index = self
     o.roster = roster
@@ -166,16 +211,35 @@ end
 function Sidebar:initialise() ISPanel.initialise(self) end
 function Sidebar:createChildren()
     ISPanel.createChildren(self)
+    self.models = {}
     for i,profile in ipairs(self.roster.profiles) do
-        local y = 33 + (i-1)*59
-        local healthButton = ISButton:new(8,y,151,31,
+        local y = 33 + (i-1)*76
+        local actor = Adapter.get(profile.id)
+        if actor and ISUI3DModel then
+            local ok, model = pcall(function()
+                local preview = ISUI3DModel:new(8,y,47,60)
+                preview:initialise()
+                preview:instantiate()
+                preview:setCharacter(actor)
+                preview:setState("idle")
+                if IsoDirections then preview:setDirection(IsoDirections.S) end
+                preview:setIsometric(false)
+                self:addChild(preview)
+                return preview
+            end)
+            if ok then self.models[profile.id] = model else
+                Core.log("Preview NPC " .. profile.id ..
+                    " indisponivel: " .. tostring(model))
+            end
+        end
+        local healthButton = ISButton:new(60,y,162,31,
             profile.firstName .. " " .. profile.lastName,self,self.onHealth)
         healthButton.npcId = profile.id
         healthButton:initialise()
         healthButton:instantiate()
         self:addChild(healthButton)
 
-        local menuButton = ISButton:new(163,y,35,31,">",self,self.onMenu)
+        local menuButton = ISButton:new(228,y,34,31,">",self,self.onMenu)
         menuButton.npcId = profile.id
         menuButton:initialise()
         menuButton:instantiate()
@@ -193,19 +257,19 @@ function Sidebar:render()
             self.healthCache[profile.id] = Health.inspect(Adapter.get(profile.id), profile)
         end
         local hp = self.healthCache[profile.id]
-        local y = 67 + (i-1)*59
+        local y = 67 + (i-1)*76
         local frac = hp.health and clamp01(hp.health / 100) or 0
-        self:drawRect(9,y,190,8,0.86,0.18,0.18,0.19)
+        self:drawRect(61,y,198,8,0.86,0.18,0.18,0.19)
         if hp.health then
-            self:drawRect(9,y,190*frac,8,0.96,
+            self:drawRect(61,y,198*frac,8,0.96,
                 frac < 0.4 and 0.9 or 0.2,
                 frac < 0.4 and 0.25 or 0.78,0.3)
         end
         local entry = Controller.get(profile.id)
         local order = entry and entry.state.requested or "OFFLINE"
-        self:drawText(order,9,y+10,0.7,0.78,0.75,1,UIFont.Small)
+        self:drawText(order,61,y+10,0.7,0.78,0.75,1,UIFont.Small)
         self:drawText(hp.health and (math.floor(hp.health) .. "%") or "?",
-            167,y+10,0.7,0.78,0.75,1,UIFont.Small)
+            226,y+10,0.7,0.78,0.75,1,UIFont.Small)
     end
 end
 
