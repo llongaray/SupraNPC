@@ -74,7 +74,7 @@ function P.observe(actor,player,team)
   nearest=nil,nearestDistance=nil,nearestDown=nil,nearestDownDistance=nil,
   visible=false,downVisible=false,ally=false,allies=0,groupPower=0,
   armed=0,unarmed=0,npcWeapon=P.equipment(actor),
-  nearestThreat=nil,firstVisible=nil,alertDistance=nil}
+  nearestThreat=nil,firstVisible=nil,alertDistance=nil,visibleTargets={}}
  if not actor or call(actor,"isDead")~=false then return result end
  local allies={}
  local function addAlly(candidate)
@@ -104,6 +104,9 @@ function P.observe(actor,player,team)
     local d,dx,dy=distance(actor,target)
     if not d or not P.canPerceive(actor,target,d,dx,dy) then return end
     result.seen=result.seen+1
+    if #result.visibleTargets<16 then
+        result.visibleTargets[#result.visibleTargets+1]=target
+    end
     if not result.alertDistance or d<result.alertDistance then
         result.alertDistance=d
         result.firstVisible=target
