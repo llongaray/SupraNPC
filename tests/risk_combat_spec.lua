@@ -58,6 +58,12 @@ for i=1,8 do
 end
 assert(walking.started==1 and walking.moving) -- do NOT cancel flee every tick
 assert(walking.cancelled==0)
+-- Losing sight of the group does not cancel a retreat already underway.
+npc.getForwardDirectionX=function() return -1 end
+time=time+650
+assert(D.update(entry,player,{})==true)
+assert(entry.navStatus=="FLEE" and entry.state.active=="RETREAT")
+assert(walking.moving and walking.started==1)
 for _,v in ipairs(zombieList) do v.dead=true end
 time=time+2000
 assert(D.update(entry,player,{})==false)
@@ -67,6 +73,7 @@ assert(not walking.moving)
 npc.getPrimaryHandItem=function() return weapon end
 player.getPrimaryHandItem=function() return weapon end
 zombieList={z(4,0),z(5,0),z(6,0)}
+npc.getForwardDirectionX=function() return 1 end
 local armed=P.observe(npc,player,{})
 assert(not P.risk(armed,100).retreat)
 time=time+2000
