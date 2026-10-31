@@ -9,6 +9,7 @@ local s=T.new()
 assert(decide(s,1,0,false,1.0,nil)=="SHOVE")
 assert(decide(s,1,0,false,1.0,nil)=="BACKSTEP")
 assert(decide(s,1,0,false,1.0,nil)=="WAIT")
+assert(decide(s,1,0,false,2.5,nil)=="WAIT") -- nunca persegue apos recuar
 assert(decide(s,0,1,false,nil,1.2)=="PIN")
 assert(decide(s,0,1,false,nil,0.7)=="STOMP")
 assert(decide(s,0,0,false)=="RESUME")
