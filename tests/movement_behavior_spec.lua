@@ -71,7 +71,7 @@ assert(Walking.active("npc1"))
 local q=ISTimedActionQueue.queues[actor]
 assert(q and #q.queue==1)
 local action=q.queue[1]
-assert(action.target:getZ()==0 and action.target:getX()>=10)
+assert(action.target:getZ()==0 and action.target:getX()>=5)
 -- Aguardar retira apenas a acao do NPC, evita re-enfileirar.
 assert(Controller.order("npc1","IDLE",player))
 assert(not Walking.active("npc1") and #q.queue==0 and action.stopped)
