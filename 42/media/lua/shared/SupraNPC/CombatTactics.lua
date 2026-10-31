@@ -17,12 +17,12 @@ function T.plan(state,o)
  local distant=o.alertStanding or standing
  local dist=o.nearestDistance
  if nearby==0 then
-    if distant==0 then
-       action,tactic="RESUME","NONE"
-       state.escape=false;state.failedShoves=0
-    elseif o.mustRetreat then
+    if o.mustRetreat then
        action,tactic="FLEE","DANGER"
        state.escape=true
+    elseif distant==0 then
+       action,tactic="RESUME","NONE"
+       state.escape=false;state.failedShoves=0
     elseif good(o.alertDistance) and o.alertDistance<=8 then
        action,tactic="APPROACH","INTERCEPT"
     end
