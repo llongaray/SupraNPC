@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.10-dev — painel médico dos NPCs, vestuário com detalhes visuais e submenus de ordens/posturas.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.11-dev — correção de navegação, roupas pré-spawn, retratos 3D e avaliação médica com o componente corporal vanilla.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -90,6 +90,18 @@ No botão `>` de cada NPC, um menu de contexto com **submenus**:
 As ordens são guardadas por personagem no `ModData` e no roster do save. O `NPCController.lua` solicita caminhos por APIs nativas disponíveis do IsoPlayer, sem teleporte. **O deslocamento efetivo e a estabilidade dessas chamadas precisam ser testados no jogo.** Ao voltar ao menu, o painel é removido para evitar interfaces duplicadas.
 
 **Roteiro completo:** [docs/TEST_CHECKLIST_0.1.10.md](docs/TEST_CHECKLIST_0.1.10.md). Use save novo e descartável: as roupas de builds anteriores não continham o snapshot de todos os detalhes.
+
+## Correções de regressão observadas na v0.1.10 (versão 0.1.11-dev)
+
+As capturas de teste confirmaram: menu e painel lateral abrem, mas **nenhum NPC obedeceu às ordens**, ambos aparecem sem roupa e a UI médica era diferente da vanilla.
+
+O controlador agora mantém e atualiza `PathFindBehavior2` durante a navegação, em vez de apenas solicitar a rota; também cancela a rota anterior ao mandar aguardar, informa falhas na barra lateral e desativa tentativas após erros repetidos. **Movimento real ainda não comprovado na Build 42.13.1.**
+
+As roupas escolhidas agora são equipadas no próprio `SurvivorDesc` antes de construir o `IsoPlayer`, como faz o editor vanilla. Se faltarem peças após o spawn, são equipadas individualmente sem duplicar as existentes. Os retratos usam `ISUI3DModel`; o painel de saúde tenta usar `ISNewHealthPanel` para exibir a silhueta corporal original do jogo, com fallback.
+
+**Essas alterações foram publicadas, mas não foram executadas neste ambiente do jogo.** O resultado de renderização, movimentação, roupas, estabilidade e ausência de crashes depende de novo teste.
+
+Checklist: [v0.1.11-dev](docs/TEST_CHECKLIST_0.1.11.md).
 
 ## Validar o próximo marco
 
