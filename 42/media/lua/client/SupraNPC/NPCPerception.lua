@@ -50,6 +50,19 @@ local function forward(a)
  if length<0.01 then return nil end
  return fx/length,fy/length
 end
+-- Close melee: CanSee may be false for a zombie behind the NPC.
+-- Never use this exception past adjacent, unblocked loaded squares.
+function P.clearAdjacent(actor,target)
+ if call(actor,"CanSee",target)==true then return true end
+ local d=distance(actor,target)
+ if not d or d>1.6 then return false end
+ local from=call(actor,"getCurrentSquare")
+ local to=call(target,"getCurrentSquare")
+ if not from or not to then return false end
+ if from==to then return true end
+ return call(from,"isAdjacentTo",to)==true and
+     call(from,"isBlockedTo",to)==false
+end
 function P.canPerceive(actor,target,d,dx,dy)
  if not d or d>P.VIEW_RANGE then return false end
  -- Close quarter 360-degree awareness for immediate self-defense.
@@ -62,7 +75,7 @@ function P.canPerceive(actor,target,d,dx,dy)
    end
  end
  -- Engine has the final word on walls/occlusion.
- return call(actor,"CanSee",target)==true
+ return P.clearAdjacent(actor,target)
 end
 local function isDown(z)
  return call(z,"isGettingUp")~=true and call(z,"isCrawling")~=true and
