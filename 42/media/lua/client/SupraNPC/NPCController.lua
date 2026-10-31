@@ -206,7 +206,7 @@ function Controller.update(player)
         if Adapter.get(id)==entry.actor and
            call(entry.actor,"isDead")~=true then
             -- Defesa passa antes de QUALQUER ordem manual; nao apaga requested.
-            local fighting=Defense.update(entry)
+            local fighting=Defense.update(entry,player,Controller.entries)
             if fighting then
                 entry.navStatus="DEFENDING"
             elseif entry.state.active=="IDLE" then
