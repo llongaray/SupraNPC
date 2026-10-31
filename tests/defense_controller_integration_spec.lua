@@ -31,6 +31,8 @@ local Walking={
     end
 }
 package.loaded["SupraNPC/NPCWalking"]=Walking
+package.loaded["SupraNPC/NPCNavigation"]={attackAccessible=function() return true end,next=function() return square,"waypoint" end,clear=function() end}
+
 local Core=require("SupraNPC/Constants")
 local Adapter=require("SupraNPC/SpawnAdapter")
 local Controller=require("SupraNPC/NPCController")
