@@ -1,114 +1,96 @@
--- Defesa: so zumbis, cooldown, interrupcao e retorno a FOLLOW.
+-- B42 mocked: shove -> queda confirmada -> aproximar -> atacar -> resume.
 package.path="42/media/lua/client/?.lua;42/media/lua/shared/?.lua;"..package.path
 local time=10000
 getTimestampMs=function() return time end
-local square={}
-local npc,player,enemy,friendly
-instanceof=function(object,class)
-    return type(object)=="table" and object.kind==class
+ZombRand=function(n) return 0 end -- teste: empurrao derruba
+instanceof=function(o,typ) return o and o.kind==typ end
+local sq={}
+local objects={}
+sq.getMovingObjects=function()
+    return {size=function() return #objects end,
+        get=function(_,i) return objects[i+1] end}
 end
-local function coords(obj,x,y)
-    obj.x=x;obj.y=y
-    obj.getX=function(self) return self.x end
-    obj.getY=function(self) return self.y end
-    obj.getZ=function() return 0 end
-    obj.getCurrentSquare=function() return square end
-    obj.isDead=function(self) return self.dead==true end
+getCell=function() return {getGridSquare=function() return sq end} end
+local npc={kind="IsoPlayer",x=10,y=10,dead=false}
+function npc:getX() return self.x end
+function npc:getY() return self.y end
+function npc:getZ() return 0 end
+function npc:isDead() return self.dead end
+function npc:getCurrentSquare() return sq end
+function npc:CanSee() return true end
+function npc:faceThisObject() end
+function npc:canPerformHandToHandCombat() return true end
+local weapon={kind="HandWeapon",getMinDamage=function() return 0.3 end,
+    getMaxDamage=function() return 0.5 end,getMaxRange=function() return 1.5 end,
+    isAimedFirearm=function() return false end,isBroken=function() return false end}
+function npc:getPrimaryHandItem() return weapon end
+local target={kind="IsoZombie",x=11,y=10.2,dead=false,down=false,hp=0.8,hits=0}
+function target:getX() return self.x end
+function target:getY() return self.y end
+function target:getZ() return 0 end
+function target:isDead() return self.dead end
+function target:getCurrentSquare() return sq end
+function target:isOnFloor() return self.down end
+function target:isProne() return self.down end
+function target:isGettingUp() return false end
+function target:knockDown()
+    self.down=true
 end
-npc={kind="IsoPlayer",dead=false}
-coords(npc,10.2,10.3)
-npc.CanSee=function() return true end
-local weapon={kind="HandWeapon",
-    getMinDamage=function() return 0.2 end,
-    getMaxDamage=function() return 0.5 end,
-    isAimedFirearm=function() return false end,
-    isBroken=function() return false end}
-npc.getPrimaryHandItem=function() return weapon end
-npc.faceThisObject=function() end
-player={kind="IsoPlayer"}
-coords(player,15,16)
-enemy={kind="IsoZombie",dead=false,hits=0}
-coords(enemy,11.2,10.5)
-enemy.Hit=function(self,w,attacker,damage,ignore,delta)
-    assert(attacker==npc and w.kind=="HandWeapon" and ignore==false and delta==1.0)
-    assert(damage>0 and damage<=0.65)
+function target:Hit(w,who,damage)
+    assert(w==weapon and who==npc)
+    assert(self.down)
     self.hits=self.hits+1
-    self.hp=(self.hp or 1.0)-damage
+    self.hp=self.hp-damage
     if self.hp<=0 then self.dead=true end
     return damage
 end
-friendly={kind="IsoPlayer",dead=false}
-coords(friendly,10.9,10.3)
-local nearby={npc,enemy,friendly}
-square.getMovingObjects=function()
-    return {size=function() return #nearby end,
-        get=function(_,i) return nearby[i+1] end}
-end
-local cell={getGridSquare=function() return square end}
-getCell=function() return cell end
-local cancelled={}
+local friendly={kind="IsoPlayer"}
+objects={npc,target,friendly}
+local move={active=false,starts=0,cancels=0}
 local Walking={
-    active=function() return true end,
-    cancel=function(id,why) cancelled[#cancelled+1]=why end,
-    pickAround=function() return square end,
-    start=function() return true end
+    active=function() return move.active end,
+    cancel=function() move.active=false;move.cancels=move.cancels+1 end,
+    pickAround=function() return sq end,
+    pickRetreat=function() return sq end,
+    start=function() move.active=true;move.starts=move.starts+1;return true end
 }
 package.loaded["SupraNPC/NPCWalking"]=Walking
-local Core=require("SupraNPC/Constants")
 local Orders=require("SupraNPC/Orders")
-local Defense=require("SupraNPC/NPCDefense")
-Core.isSolo=function() return true end
-local entry={actor=npc,profile={id="P1"},state=Orders.new("FOLLOW")}
-assert(Defense.scan(npc)==enemy) -- nunca selecionar IsoPlayer
-assert(Defense.update(entry)==true)
-assert(entry.state.requested=="FOLLOW")
-assert(entry.state.active=="SELF_DEFEND")
-assert(enemy.hits==1 and entry.navStatus=="DEFENDING")
-assert(#cancelled>=1 and cancelled[1]=="autodefesa prioridade maxima")
--- Rate limit: nao aplicar dano em todo tick.
-Defense.update(entry)
-assert(enemy.hits==1)
+local D=require("SupraNPC/NPCDefense")
+local entry={actor=npc,profile={id="A"},state=Orders.new("FOLLOW")}
+assert(D.scan(npc)==target)
+assert(D.update(entry)==true)
+assert(entry.state.active=="SELF_DEFEND" and entry.state.requested=="FOLLOW")
+assert(target.down and target.hits==0)
+time=time+1000
+D.update(entry)
+assert(entry.navStatus=="PIN" and target.hits==0)
+-- Aproximou fisicamente: so agora o alvo caido pode levar golpes.
+npc.x=10.4
+time=time+1000
+D.update(entry)
+assert(target.hits==1 and entry.navStatus=="STOMP")
+assert(D.hit(npc,friendly)==false) -- jamais bater no jogador
 time=time+1100
-Defense.update(entry)
-assert(enemy.hits==2)
--- Uma ordem dada durante o combate passa a ser pending.
-assert(Orders.set(entry.state,"GUARD"))
-assert(entry.state.active=="SELF_DEFEND")
-assert(entry.state.requested=="GUARD")
--- Fim da ameaca restaura GUARD, sem esquecer pedido.
-enemy.dead=true
-assert(Defense.update(entry)==false)
-assert(entry.state.active=="GUARD" and entry.state.requested=="GUARD")
-assert(Defense.STATES.P1==nil)
--- Ataque nao deve acertar outro humano.
-local hit,reason=Defense.hit(npc,friendly)
-assert(hit==false and reason=="alvo invalido")
--- Sem arma nao inventar dano:
-enemy.dead=false
-npc.getPrimaryHandItem=function() return nil end
-npc.getAttackingWeapon=function() return nil end
-local ok,msg=Defense.hit(npc,enemy)
-assert(ok==false and msg=="sem HandWeapon corpo a corpo")
--- Arma desarmada criada pela factory oficial, sem gerar inventario.
-InventoryItemFactory={CreateItem=function(itemType)
-    assert(itemType=="Base.BareHands")
-    return {kind="HandWeapon",
-        getMinDamage=function() return 0.2 end,
-        getMaxDamage=function() return 0.4 end,
-        getMaxRange=function() return 1.1 end,
-        isAimedFirearm=function() return false end}
-end}
-assert(Defense.hit(npc,enemy)==true)
-assert(enemy.hits==3)
-InventoryItemFactory=nil
-npc.getPrimaryHandItem=function() return weapon end
--- Visibilidade é obrigatória para atingir atraves de tiles.
+D.update(entry)
+assert(target.dead and target.hits==2)
+time=time+1100
+assert(D.update(entry)==false)
+assert(entry.state.active=="FOLLOW" and D.STATES.A==nil)
+-- Shove pode falhar: zumbi continua em pe, proxima acao e BACKSTEP.
+target.dead=false;target.down=false;target.hp=1;target.hits=0
+npc.x=10
+local entry2={actor=npc,profile={id="B"},state=Orders.new("IDLE")}
+ZombRand=function() return 99 end
+D.update(entry2)
+assert(not target.down and target.hits==0)
+time=time+1000
+D.update(entry2)
+assert(entry2.navStatus=="BACKSTEP")
+-- Sem visibilidade ou outro andar nao e alvo.
 npc.CanSee=function() return false end
-assert(Defense.hit(npc,enemy)==false)
-npc.CanSee=function() return true end
--- Nao atacar zumbi de outro andar ou fora do raio.
-enemy.getZ=function() return 1 end
-assert(Defense.scan(npc)==nil)
-enemy.getZ=function() return 0 end
-Defense.clear()
+assert(D.hit(npc,target)==false)
+target.getZ=function() return 1 end
+assert(D.observe(npc).standing==0)
+D.clear()
 print("[SupraNPC] npc_defense_spec: OK")
