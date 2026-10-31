@@ -39,9 +39,9 @@ assert(md.SupraNPC_Order == "IDLE")
 assert(Controller.order("npc-A","FOLLOW",player))
 for i=1,45 do Controller.update(player) end
 assert(npc.followRequests == 1)
-assert(Controller.order("npc-A","GUARD",player,"NPC"))
+assert(Controller.order("npc-A","GUARD",player,"PLAYER"))
 for i=1,45 do Controller.update(player) end
-assert(npc.guardX == 10 and npc.guardY == 10)
+assert(npc.guardX == 15 and npc.guardY == 18)
 Controller.clear()
 assert(Controller.attach(profile, npc))
 assert(Controller.get("npc-A").state.requested == "GUARD")
