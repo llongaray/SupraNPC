@@ -65,7 +65,8 @@ local WARNINGS={
     UNARMED={"Estamos sem armas! Recuem!","Sem armas, melhor fugir!"},
     FLEE={"Vou recuar!","Corram! Vou sair daqui!"},
     COMBAT={"Deixa que eu seguro esse!","Vou derrubar ele!"},
-    RESUME={"Tudo limpo. Voltando!","Vou seguir a ordem!"}
+    RESUME={"Tudo limpo. Voltando!","Vou seguir a ordem!"},
+    BASE={"Vou voltar para a base!","Recuando para casa!"}
 }
 local lastSaid={}
 function Speech.npcReply(actor,cmd,option,success)
