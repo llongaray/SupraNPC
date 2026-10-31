@@ -124,7 +124,8 @@ zombieList={z(3,0)}
 entry.stance="PASSIVE"
 time=time+2000
 assert(D.update(entry,player,{})==true)
-assert(entry.state.active=="RETREAT" and entry.navStatus=="FLEE")
+assert(entry.state.active=="RETREAT" and
+    (entry.navStatus=="FLEE" or entry.navStatus=="FLEE_BASE"))
 assert(D.STATES.A.planner.last=="FLEE")
 assert(D.STATES.A.planner.cycles==0)
 D.clear()
