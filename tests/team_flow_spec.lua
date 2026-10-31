@@ -154,3 +154,27 @@ local anotherProf = {}
 CharacterCreationProfession.create(anotherProf)
 assert(anotherProf.backButton.onclick == CharacterCreationProfession.onOptionMouseDown)
 print("[SupraNPC] teste de callbacks de ISButton: OK")
+
+-- Simula a navegacao de um novo NPC pelo wrapper do botao de profissao.
+Core.pendingRoster = Roster.new(1)
+create.forenameEntry:setText("Jogador")
+create.surnameEntry:setText("Teste")
+MainScreen.instance.desc = playerDescriptor
+assert(Flow.onMainClick(create, { internal = "NEXT" }, 0, 0, original))
+assert(Flow.session.stage == "profession")
+local previousCalls = originalCalls
+-- NEXT de aparencia nao pode pular a tela de profissao.
+assert(Flow.onMainClick(create, { internal = "NEXT" }, 0, 0, original))
+assert(originalCalls == previousCalls)
+assert(Flow.session.stage == "profession")
+-- O callback de NEXT da profissao muda para aparencia, com origem vanilla intacta.
+CharacterCreationProfession.onOptionMouseDown(profession, { internal = "NEXT" }, 0, 0)
+assert(Flow.session.stage == "appearance")
+create.forenameEntry:setText("Clara")
+create.surnameEntry:setText("Companheira")
+assert(Flow.onMainClick(create, { internal = "NEXT" }, 0, 0, original))
+assert(Flow.session == nil)
+assert(originalCalls == previousCalls + 1)
+assert(Core.pendingRoster.profiles[1].firstName == "Clara")
+assert(Roster.validate(Core.pendingRoster, true))
+print("[SupraNPC] regressao de etapas profissão/aparencia: OK")
