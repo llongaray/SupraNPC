@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.19-dev — hotfix para exceções repetitivas do leitor do mapa e memória de ameaça que mantinha FLEE sem contato visual.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.20-dev — posturas funcionais PASSIVE (foge sem combater), DEFENSIVE (combate primeiro e recua em desvantagem) e AGGRESSIVE (caça zumbis e não foge automaticamente).** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -19,6 +19,22 @@ git -C "$env:USERPROFILE\Zomboid\mods\SupraNPC" pull origin main
 ```
 
 O diretório `SupraNPC/42/mod.info` fica dentro da raiz clonada. Ative o mod no menu Mods do jogo.
+
+## Posturas reais de combate — 0.1.20-dev
+
+As posturas deixam de ser apenas um alcance de percepção. O módulo `StancePolicy.lua` governa **interrupções, retirada e combate**:
+
+| Postura | Prioridade | Detecção | Fuga |
+| --- | --- | --- | --- |
+| **PASSIVE** | Não lutar, evitar inimigos, fugir | Até 9 tiles | Qualquer ameaça visível no alcance; nunca SHOVE/SWING/STOMP |
+| **DEFENSIVE** | Combater; recuar em desvantagem relevante | ~5,5 tiles para interceptação | Três ou mais inimigos sem apoio corpo a corpo, desvantagem importante em hordas, ou ferimento crítico |
+| **AGGRESSIVE** | Perseguir e eliminar zumbis acima de FOLLOW/GUARD | Até 12 tiles | Sem fuga automática por desvantagem; pode morrer tentando lutar |
+
+A troca de postura cancela a tática antiga (inclusive RETREAT) e recalcula o combate preservando a ordem original. Um NPC passivo pode retornar para a base em fuga. Zumbis caídos distantes também são considerados na perseguição agressiva.
+
+**Importante:** AGGRESSIVE não habilita inteligência para armas de fogo nem garante ataques bem-sucedidos no IsoPlayer não controlado; a integração do combate nativo B42 continua experimental. Obstruções e verificação de aliados permanecem.
+
+[Teste de campo e checklist 0.1.20](docs/TEST_CHECKLIST_0.1.20.md).
 
 ## Correção 0.1.19-dev — diagnóstico de console.txt real
 
