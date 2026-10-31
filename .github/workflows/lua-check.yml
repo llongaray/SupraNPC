@@ -39,3 +39,4 @@ jobs:
           lua5.1 tests/movement_behavior_spec.lua
           lua5.1 tests/speech_spec.lua
           lua5.1 tests/npc_defense_spec.lua
+          lua5.1 tests/defense_controller_integration_spec.lua
