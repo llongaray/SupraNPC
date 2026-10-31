@@ -2,18 +2,18 @@
 -- Nenhuma dependência externa; build de referência 42.13.1.
 SupraNPC = SupraNPC or {}
 local M = SupraNPC
-M.VERSION = "0.1.6-dev"
+M.VERSION = "0.1.7-dev"
 M.MOD_ID = "SupraNPC"
 M.MAX_COMPANIONS = 5
 M.DEFAULT_FOLLOW_DISTANCE = 2.5
 M.THINK_INTERVAL = 20
 M.DEBUG = true
 
--- DESATIVADO APOS TESTE EM JOGO: addZombiesInOutfit cria ZUMBIS reais.
--- Nao habilitar este adaptador para NPCs humanos. A neutralizacao falhou.
--- Manter as telas de criacao e fichas; nenhum spawn ate implementacao correta.
-M.EXPERIMENTAL_SPAWN = false
-M.NPC_BODY_MODE = "unimplemented"
+-- EXPERIMENTAL: criacao nativa de IsoPlayer (do ArayHumanNPCTest).
+-- NUNCA chama addZombiesInOutfit; controle e camera sempre restaurados.
+-- Testar apenas em save descartavel na B42.13.1.
+M.EXPERIMENTAL_SPAWN = true
+M.NPC_BODY_MODE = "iso_player"
 M.PROXY_FOLLOW = false
 
 function M.log(message)
