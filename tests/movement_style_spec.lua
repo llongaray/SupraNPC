@@ -25,6 +25,24 @@ assert(M.choose(e,player)=="SNEAK")
 e.lastObservation=nil
 player.getX=function() return 10 end
 assert(M.choose(e,player)=="RUN")
+-- Combat orders override follower stealth: aggression sprints toward
+-- distant targets while defensive combat stays controlled and walking.
+e.state.active="SELF_DEFEND"
+e.navStatus="APPROACH"
+e.stance="AGGRESSIVE"
+e.lastObservation={standing=1,nearStanding=0,alertDistance=8}
+player.isSneaking=function() return true end
+assert(M.choose(e,player)=="RUN")
+assert(M.update(e,player) and calls.running and not calls.sneaking)
+e.lastObservation.alertDistance=2
+assert(M.choose(e,player)=="WALK")
+e.stance="DEFENSIVE"
+e.lastObservation.alertDistance=8
+assert(M.choose(e,player)=="WALK")
+assert(M.update(e,player) and calls.running==false and calls.sneaking==false)
+e.retreating=true
+assert(M.choose(e,player)=="RUN") -- escape outranks any combat stance
+e.retreating=false
 M.clear("x",actor)
 assert(calls.running==false and calls.sneaking==false)
 local bad={actor={getModData=function() return {SupraNPC_IsNPC=false} end},profile={id="x"}}
