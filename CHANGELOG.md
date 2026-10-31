@@ -1,4 +1,15 @@
 # Changelog — SupraNPC
+## 0.1.18-dev — 2026-10-31
+
+- Movimento IsoPlayer: WALK/SNEAK/RUN por setSneaking/setRunning, conforme risco, postura do player, distancia de FOLLOW e retirada; sem alterar o player nem usar velocidade artificial.
+- Roteador evita tiles de zumbis e permite se afastar se cercado. Fuga escolhe waypoint seguro e base marcada como destino preferencial; fallback para retirada local.
+- Portas/janelas: estende abertura segura de janela com canClimbThrough e climbThroughWindow, destino livre, validação de vidro perigoso/ameaça, cooldown e bloqueio de novas ordens durante a animação.
+- Territory.lua: area BASE:A/BASE:B retangular, BASE unico como regiao pontual, pontos NPC:LOOT/CLEAR/DANGER/RALLY/SUPPLY/HOSPITAL, notas livres e icones.
+- NPCMapKnowledge.lua: leitura de MapItem e API UIWorldMap com coordenadas, sincronização com ModData do player, preservação se API de coordenadas não estiver disponível.
+- Menu e voz adicionam RETURN_BASE; HUD mostra base e numero de anotações.
+- Novas regressões: territory_spec, map_knowledge_spec, movement_style_spec, window climb e risk_combat com base. CI Lua 5.1.
+- **Pendente in-game:** se IsoPlayer adicional respeita setSneaking/setRunning e climbThroughWindow na B42.13.1; disponibilidade real das coordenadas de anotações da UI; base é um perímetro manual, não é validação de segurança; missões não são executadas.
+
 ## 0.1.17-dev — 2026-10-31
 
 - Follow reduzido para 1,3 tile; movimento agora usa waypoints adjacentes acessíveis em grade (16 tiles/640 nos) e recalcula quando player muda de posicao, sem teleporte.
