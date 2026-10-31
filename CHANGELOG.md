@@ -1,4 +1,14 @@
 # Changelog — SupraNPC
+## 0.1.15-dev — 2026-10-31
+
+- **Visão:** `NPCPerception.lua` detecta zumbis à frente em cone de 130° até 12 tiles e consciência próxima; usa visibilidade de `CanSee` e lista de zumbis carregados, com fallback por squares. Avisos e interceptação de alvos até ~8 tiles.
+- **Armas e risco:** avaliação dos equipamentos melee/firearm/desarmado do NPC e de aliados próximos. Escore heurístico compara capacidade de combate, número de zumbis e saúde, não declara porcentagem de morte.
+- **Combate:** 1–2 inimigos levam a empurrões persistentes com cooldown, recuo somente sob pressão. Horde com apoio insuficiente prioriza fuga desde a detecção, sem esperar o player morrer.
+- **Movimento:** `FLEE` não cancela `ISWalkToTimedAction` ativo em cada decisão. Memória de até 16 ameaças vistas na horda evita retornar ao FOLLOW ao virar de costas antes de ganhar segurança.
+- **Comunicação:** NPC responde a cada comando, dá alertas de zumbis/horda, informa falta de armas, pede ajuda ao ferir-se, avisa quando se retira e quando retoma a ordem.
+- **Testes:** novos `perception_spec.lua`, `risk_combat_spec.lua` e extensões dos testes de combat tactics, speech e fuga sem visão; CI verde em Lua 5.1 com mocks.
+- **Ainda não validado no PZ B42.13.1:** ângulo de FOV real, movimento/interceptação/fuga em terrenos cercados, acerto de ataques, animações e desempenho com muitos zumbis.
+
 ## 0.1.14-dev — 2026-10-31
 
 - Novo `CombatTactics.lua`: decisão determinística baseada na quantidade de zumbis em pé/caídos, distância e apoio físico de aliado.
