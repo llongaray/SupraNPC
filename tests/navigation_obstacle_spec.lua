@@ -11,6 +11,8 @@ local function tile(x,y)
  function s:getY() return self.y end
  function s:getZ() return 0 end
  function s:getMovingObjects() return {size=function() return 0 end} end
+ function s:TreatAsSolidFloor() return true end
+ function s:isFree() return true end
  function s:isBlockedTo(other)
     if other.y~=self.y and not allowDetour then return true end
     return false
@@ -86,12 +88,19 @@ assert(nextSq==nil and reason=="no accessible route" and door.tries==0)
 -- A closed window can be opened once, but does NOT become walkable.
 N.clear("npc")
 local window=portal("window",false,true)
+window.canClimbThrough=function() return true end
+actor.climbThroughWindow=function(self,w)
+    self.climbCount=(self.climbCount or 0)+1
+    assert(w==window)
+end
 nextSq,reason=N.next(actor,3.5,1.5,0,"npc",free,1.3)
-assert(nextSq==nil and reason=="no accessible route")
+assert(nextSq==nil and reason=="window opened")
 assert(window.open and window.tries==1)
 assert(not N.attackAccessible(actor,target))
+nextSq,reason=N.next(actor,3.5,1.5,0,"npc",free,1.3)
+assert(nextSq==nil and reason=="window climbing" and actor.climbCount==1)
 nextSq=N.next(actor,3.5,1.5,0,"npc",free,1.3)
-assert(window.tries==1)
+assert(window.tries==1 and actor.climbCount==1)
 -- A locked door with a detour must produce an alternate route.
 N.clear("npc")
 door=portal("door",true,false)
