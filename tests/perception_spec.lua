@@ -59,4 +59,14 @@ local stronger=P.observe(actorMelee,allyMelee,{})
 assert(stronger.armed==1 and stronger.groupPower==4)
 assert(P.risk(stronger,100).retreat==false)
 assert(P.risk(stronger,30).retreat==true)
+-- Defend a player under attack unless this NPC is in immediate danger.
+local distantAssailant=z(3.8,0)
+zombies={z(2.3,0),distantAssailant}
+local rescuing=P.observe(p,actor(3.8,0.5),{})
+assert(rescuing.urgentTarget==distantAssailant)
+assert(rescuing.nearest==distantAssailant)
+zombies={z(1.0,0),distantAssailant}
+local selfDefense=P.observe(p,actor(3.8,0.5),{})
+assert(selfDefense.urgentTarget==distantAssailant)
+assert(selfDefense.nearestDistance==1.0) -- self protection has precedence
 print("[SupraNPC] perception_spec: OK")
