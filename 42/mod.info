@@ -1,6 +1,6 @@
 name=SupraNPC
 id=SupraNPC
 author=Leonardo Longaray dos Santos
-modversion=0.1.6-dev
-description=Projeto B42 experimental. Criacao de equipe funcional; spawn desabilitado apos teste de seguranca. NPC humano real em desenvolvimento.
+modversion=0.1.7-dev
+description=SupraNPC B42: criacao individual e spawn humano IsoPlayer experimental, renderizacao manual. Apenas single-player.
 versionMin=42.13.0
