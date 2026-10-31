@@ -58,7 +58,10 @@ assert(calls.follow>=2)
 Controller.clear()
 Adapter.actors["A1"]=actor
 assert(Controller.attach(profile,actor))
-local failedPath={update=function() error("Path engine indisponivel") end}
+local failedPath={
+    pathToCharacter=function() end,
+    update=function() error("Path engine indisponivel") end
+}
 actor.getPathFindBehavior2=function() return failedPath end
 local before=Controller.get("A1").navTries
 for i=1,15 do Controller.update(player) end
