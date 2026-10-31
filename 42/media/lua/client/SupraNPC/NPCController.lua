@@ -168,11 +168,20 @@ function Controller.update(player)
                         else
                             if Controller.ticks >= entry.nextRequestTick then
                                 local ok, err = pcall(function()
+                                    -- Comandar o mesmo PathFindBehavior2
+                                    -- que sera atualizado neste ciclo.
                                     if command == "FOLLOW" then
-                                        actor:pathToCharacter(player)
+                                        if path.pathToCharacter then
+                                            path:pathToCharacter(player)
+                                        else actor:pathToCharacter(player) end
                                     else
-                                        actor:pathToLocation(math.floor(tx),
-                                            math.floor(ty), math.floor(tz))
+                                        if path.pathToLocation then
+                                            path:pathToLocation(math.floor(tx),
+                                                math.floor(ty), math.floor(tz))
+                                        else
+                                            actor:pathToLocation(math.floor(tx),
+                                                math.floor(ty), math.floor(tz))
+                                        end
                                     end
                                 end)
                                 if ok then
