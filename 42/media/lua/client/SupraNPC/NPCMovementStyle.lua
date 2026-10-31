@@ -17,6 +17,7 @@ end
 function M.choose(entry,player)
  if not entry then return "WALK" end
  local status=entry.navStatus or ""
+ if status=="CLIMB_WINDOW" then return "WALK" end
  local obs=entry.lastObservation
  if entry.retreating or status=="FLEE" or status=="RETURN_BASE" then
    return "RUN"
