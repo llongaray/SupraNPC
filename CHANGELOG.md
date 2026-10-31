@@ -1,5 +1,16 @@
 # Changelog — SupraNPC
 
+## 0.1.10-dev — 2026-10-31
+
+- Novo `Health.lua`: leitura individual de BodyDamage e sinais reais de ferimentos, dor e necessidades; sem mutação e sem criar segundo jogador.
+- Novo `NPCUI.lua`: painel lateral da equipe, barra de HP, exame médico independente e submenus Ordens/Postura.
+- Novo `NPCController.lua`: seguir (requisição de pathfinding nativo experimental), aguardar e guardar posição; preferências de postura sem combate ativo.
+- `Wardrobe.lua` captura/restaura nome de itens, tint, hue, baseTexture e textureChoice, quando métodos existem; validações e logs.
+- `Boot.lua` integra registro de NPCs ao controlador, painel e limpeza ao voltar ao menu.
+- Suites Lua novas: `health_spec.lua`, `npc_controller_spec.lua`, `wardrobe_visual_spec.lua`.
+- **Atenção:** funcionalidades ainda não testadas em jogo nesta versão. Ver `docs/TEST_CHECKLIST_0.1.10.md`.
+
+
 ## 0.1.9-dev — 2026-10-31
 
 ### Teste real
