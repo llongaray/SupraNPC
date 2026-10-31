@@ -1,5 +1,23 @@
 # Changelog — SupraNPC
 
+## 0.1.9-dev — 2026-10-31
+
+### Teste real
+- Capturas do PZ 42.13.1 confirmam jogador + dois personagens humanos extras no spawn.
+- Ambos aparecem apenas de roupa íntima; janela adicional "Vida do Jogador" indica problema de UI ainda aberto.
+
+### Código
+- Captura de roupa escolhida no editor via `SurvivorDesc:getWornItems()`, sem armazenar referências Java.
+- Novo `Wardrobe.lua` cria as peças no inventário do NPC e tenta equipá-las com `setWornItem`.
+- Logs para identificar quantas peças foram vestidas e qual falhou.
+- Teste `wardrobe_spec.lua` e regressão de captura em `team_flow_spec.lua`.
+
+### Pendente
+- Confirmar roupas no mundo e fidelidade das cores/texturas em save novo.
+- Isolar HUD/câmera do NPC do controle do jogador.
+- Seguir, combate, persistência de entidade e demais funções não validadas.
+
+
 ## 0.1.8-dev — 2026-10-31
 
 ### Adicionado
