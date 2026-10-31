@@ -5,6 +5,12 @@ local function finite(v) return type(v)=="number" and v==v and v>-1000000 and v<
 function T.classify(text)
  if type(text)~="string" then return "NOTE" end
  local upper=text:upper():gsub("^%s+",""):gsub("%s+$","")
+ if upper:find("^ICON:") then
+    if upper:find("SKULL") or upper:find("DANGER") then return "DANGER" end
+    if upper:find("HOUSE") or upper:find("HOME") then return "RALLY" end
+    if upper:find("CROSS") or upper:find("HOSPITAL") then return "HOSPITAL" end
+    return "SYMBOL",nil
+ end
  local kind,corner=upper:match("^NPC%s*:%s*([%w_]+)%s*:%s*([AB])$")
  if kind and aliases[kind] then return aliases[kind],corner end
  kind=upper:match("^NPC%s*:%s*([%w_]+)")
