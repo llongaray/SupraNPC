@@ -59,6 +59,7 @@ entry.lastObservation.nearStanding=2
 z.down=true
 assert(D.pulse(entry,{}, {})==false and calls==2)
 entry.lastObservation.nearStanding=0
+ms=1601 -- next engine tick: never issue two attacks at same timestamp
 assert(D.pulse(entry,{}, {})==true and calls==3 and entry.navStatus=="STOMP")
 D.clear()
 print("[SupraNPC] aggressive_pulse_spec: OK")
