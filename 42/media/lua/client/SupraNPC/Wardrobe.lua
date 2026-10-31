@@ -177,6 +177,32 @@ function Wardrobe.dressDescriptor(desc, saved)
     return dressed, failed
 end
 
+-- Só equipar peças que ainda não estão vestidas. Um IsoPlayer pode
+-- herdar uma parte do outfit do descriptor, mas deixar outras de fora.
+function Wardrobe.missing(actor, saved)
+    if not Wardrobe.validate(saved) then return nil end
+    local worn = call(actor, "getWornItems")
+    local n = tonumber(call(worn,"size")) or 0
+    local counts = {}
+    for i=0,math.min(n,80)-1 do
+        local slot = call(worn,"get",i)
+        local item = call(slot,"getItem") or call(worn,"getItemByIndex",i)
+        local full = call(item,"getFullType")
+        if type(full)=="string" then
+            counts[full] = (counts[full] or 0)+1
+        end
+    end
+    local remaining={}
+    for _, rec in ipairs(saved) do
+        if (counts[rec.type] or 0)>0 then
+            counts[rec.type]=counts[rec.type]-1
+        else
+            remaining[#remaining+1]=rec
+        end
+    end
+    return remaining
+end
+
 function Wardrobe.equip(actor, saved)
     if not actor then return 0, 0, "NPC ausente" end
     if not Wardrobe.validate(saved) then return 0, 0, "roupas invalidas" end
