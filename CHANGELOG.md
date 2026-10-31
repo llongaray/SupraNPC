@@ -1,5 +1,15 @@
 # Changelog — SupraNPC
 
+## 0.1.11-dev — 2026-10-31
+
+- **Navegação:** o comando seguir/guardar requisita rotas diretamente ao PathFindBehavior2 e chama update por tick; agora registra resultado, falhas e falta de progresso. Aguardar cancela a rota anterior.
+- **Vestuario:** o outfit configurado no editor é aplicado primeiro no SurvivorDesc antes de IsoPlayer.new, preservando item/body location/visual; peças que faltarem são equipadas após o spawn sem duplicar.
+- **UI:** retratos 3D por NPC com ISUI3DModel e avaliação médica com silhueta corporal ISNewHealthPanel do jogo (fallback se API não estiver disponível).
+- **Diagnosticos:** confirmar ordens e falhas no painel de equipe; log mais claro de roupas capturadas/aplicadas.
+- **Testes:** suite de pathfinding, cancelamento, falha segura e novos testes de roupas do descriptor. O CI está configurado, sem validação executada neste ambiente.
+- **Pendência:** todas as mudanças exigem nova execução in-game B42.13.1; ainda não considerar movimento/vestuario/preview aprovados.
+
+
 ## 0.1.10-dev — 2026-10-31
 
 - Novo `Health.lua`: leitura individual de BodyDamage e sinais reais de ferimentos, dor e necessidades; sem mutação e sem criar segundo jogador.
