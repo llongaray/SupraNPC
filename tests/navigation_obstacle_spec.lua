@@ -99,6 +99,10 @@ assert(window.open and window.tries==1)
 assert(not N.attackAccessible(actor,target))
 nextSq,reason=N.next(actor,3.5,1.5,0,"npc",free,1.3)
 assert(nextSq==nil and reason=="window climbing" and actor.climbCount==1)
+assert(N.isClimbing("npc",actor))
+actor.x=2.5
+assert(not N.isClimbing("npc",actor))
+actor.x=1.5
 nextSq=N.next(actor,3.5,1.5,0,"npc",free,1.3)
 assert(window.tries==1 and actor.climbCount==1)
 -- A locked door with a detour must produce an alternate route.
