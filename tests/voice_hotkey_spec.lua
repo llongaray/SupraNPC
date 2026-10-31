@@ -27,8 +27,28 @@ assert(#keyBinding==2 and keyBinding[2].value==V.KEY_ID)
 V.registerBinding()
 assert(#keyBinding==2)
 assert(#pressed==1 and #released==1 and #ticked==1)
+-- Real regression from console(3).txt: B42 returned a synthetic code
+-- 10003; Keyboard.getKeyName(10003) throws a Java exception every HUD frame.
+local labelCalls=0
+Keyboard.getKeyName=function(key)
+    assert(key>=1 and key<=255,"native keyboard index out of bounds")
+    labelCalls=labelCalls+1
+    return key==56 and "LALT" or tostring(key)
+end
+shortcuts[V.KEY_ID]=10003
+assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
+assert(V.keyLabel()=="RECONFIGURAR" and labelCalls==0)
+pressed[1](10003)
+assert(not V.active)
+shortcuts[V.KEY_ID]=-1
+assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
+shortcuts[V.KEY_ID]=256
+assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
+shortcuts[V.KEY_ID]=55.5
+assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
 shortcuts[V.KEY_ID]=56
-assert(V.keyLabel()=="LALT")
+assert(V.getKey()==56 and V.keyLabel()=="LALT")
+assert(V.keyLabel()=="LALT" and labelCalls==1) -- per-frame label cache
 local feedback={}
 V.setFeedback(function(t) feedback[#feedback+1]=t end)
 pressed[1](56)
