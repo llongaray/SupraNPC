@@ -47,7 +47,11 @@ local professionDefault = {
 local profession = {
     profession = professionDefault,
     listboxProf = { selected = 1, items = { { item = professionDefault } } },
-    listboxTraitSelected = { items = {} },
+    listboxTraitSelected = { items = {
+        { item = {getType = function()
+            return {getName = function() return "Base.Brave" end} end },
+          text = "Corajoso" }
+    } },
     listboxXpBoost = { items = {} },
     visible = false
 }
@@ -62,6 +66,12 @@ function profession:addTrait(t) self.listboxTraitSelected.items[#self.listboxTra
 function profession:setVisible(v) self.visible = v end
 
 local create = { visible = true }
+create.voiceTypeCombo = { selected = 3 }
+create.voicePitchSlider = {
+    value = 14,
+    getCurrentValue = function(self) return self.value end,
+    setCurrentValue = function(self, value) self.value = value end
+}
 create.forenameEntry = { value = "Jogador", getText = function(self) return self.value end, setText = function(self,v) self.value=v end }
 create.surnameEntry = { value = "Teste", getText = function(self) return self.value end, setText = function(self,v) self.value=v end }
 function create:initPlayer()
@@ -121,6 +131,10 @@ assert(Core.pendingRoster.profiles[2].complete == false)
 assert(create.forenameEntry:getText() == "NPC")
 assert(create.surnameEntry:getText() == "2")
 
+-- O NPC modifica widgets; o player deve recuperar os valores originais.
+create.voiceTypeCombo.selected = 1
+create.voicePitchSlider.value = -5
+
 -- Ultimo NPC: apos profissao, so entao finalizar aparencia.
 Flow.session.stage = "appearance"
 -- Ultimo NEXT: restaura descritor do player e passa ao vanilla UMA vez.
@@ -131,6 +145,10 @@ assert(originalCalls == 1)
 assert(MainScreen.instance.desc == playerDescriptor)
 assert(playerDescriptor:getForename() == "Jogador")
 assert(playerDescriptor:getSurname() == "Teste")
+assert(#profession.listboxTraitSelected.items == 1)
+assert(profession.listboxTraitSelected.items[1].text == "Corajoso")
+assert(create.voiceTypeCombo.selected == 3)
+assert(create.voicePitchSlider:getCurrentValue() == 14)
 assert(Core.pendingRoster.profiles[2].firstName == "Bruno")
 assert(Core.pendingRoster.profiles[2].complete == true)
 assert(Roster.validate(Core.pendingRoster, true))
