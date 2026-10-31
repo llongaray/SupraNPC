@@ -15,6 +15,13 @@ jobs:
         run: |
           test -f 42/mod.info
           test -d common
+          test -f 42/media/lua/shared/SupraNPC/Orders.lua
+          test -f 42/media/lua/shared/SupraNPC/Config.lua
+          # Regressao de seguranca: jamais criar NPC a partir de IsoZombie.
+          if grep -R -F 'addZombiesInOutfit(' 42/media/lua/client --include='*.lua'; then
+            echo "API de zumbis nao pode ser usada como spawn de NPC"
+            exit 1
+          fi
           find 42/media/lua -name '*.lua' -type f -print0 | xargs -0 -n 1 luac5.1 -p
       - name: Unit tests (game-independent logic)
         run: |
