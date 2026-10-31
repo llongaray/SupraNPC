@@ -69,4 +69,27 @@ zombies={z(1.0,0),distantAssailant}
 local selfDefense=P.observe(p,actor(3.8,0.5),{})
 assert(selfDefense.urgentTarget==distantAssailant)
 assert(selfDefense.nearestDistance==1.0) -- self protection has precedence
+-- Secondary IsoPlayers may have an empty CanSee cache. LOS from the
+-- map must still notice zombies at 7 tiles, but never through a wall.
+local extra=actor(0,0)
+extra.CanSee=function() return false end
+extra.getCurrentSquare=function() return {} end
+local far=z(7,0)
+far.getCurrentSquare=function() return {} end
+local losCell={}
+getCell=function() return losCell end
+local actualLOS="Clear"
+LosUtil={lineClear=function(c,x1,y1,z1,x2,y2,z2,ignoreDoors)
+    assert(c==losCell and ignoreDoors==false)
+    return actualLOS
+end}
+assert(P.canPerceive(extra,far,7,7,0))
+actualLOS="Blocked"
+assert(not P.canPerceive(extra,far,7,7,0))
+actualLOS="ClearThroughClosedDoor"
+assert(not P.canPerceive(extra,far,7,7,0))
+actualLOS="ClearThroughOpenDoor"
+assert(P.canPerceive(extra,far,7,7,0))
+LosUtil=nil
+assert(not P.canPerceive(extra,far,7,7,0))
 print("[SupraNPC] perception_spec: OK")
