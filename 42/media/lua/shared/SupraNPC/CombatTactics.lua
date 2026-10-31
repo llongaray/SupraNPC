@@ -12,6 +12,8 @@ function T.plan(state,o)
     standing%1~=0 or down%1~=0 then return nil,"invalid_counts" end
  local action,tactic="WATCH","AWARE"
  local nearby=standing+down
+ if standing>=3 then state.groupCombat=true end
+ if standing==0 then state.groupCombat=false end
  local distant=o.alertStanding or standing
  local dist=o.nearestDistance
  if nearby==0 then
@@ -31,7 +33,7 @@ function T.plan(state,o)
        state.last~="SHOVE" then
        action="SHOVE" -- one emergency push to create space
     else action="FLEE" end
- elseif standing>=3 then
+ elseif standing>=3 or state.groupCombat then
     tactic="SUPPORTED"
     if state.last=="SHOVE" then action="BACKSTEP"
     elseif state.last=="BACKSTEP" and good(dist) and dist>T.SHOVE_RANGE then
