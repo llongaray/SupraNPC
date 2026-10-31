@@ -10,6 +10,26 @@ local function call(o,key,...)
  if ok then return r end
 end
 local function symbols()
+ -- A UIWorldMap API wrapper exposes getWorldX/getWorldY whereas raw
+ -- MapItem WorldMapBaseSymbol objects may not have position getters.
+ local frames={}
+ if ISWorldMap and ISWorldMap.instance then
+    frames[#frames+1]=ISWorldMap.instance
+ end
+ if ISWorldMap_instance then frames[#frames+1]=ISWorldMap_instance end
+ for _,frame in ipairs(frames) do
+    local candidates={frame,call(frame,"getAPI"),call(frame,"getMapAPI")}
+    if frame.javaObject then
+       candidates[#candidates+1]=frame.javaObject
+       candidates[#candidates+1]=call(frame.javaObject,"getAPI")
+    end
+    for _,ui in ipairs(candidates) do
+       local api=call(ui,"getSymbolsAPI")
+       if api and call(api,"getSymbolCount")~=nil then
+          return api
+       end
+    end
+ end
  local m=nil
  if MapItem and MapItem.getSingleton then
    local ok,res=pcall(function() return MapItem.getSingleton() end)
@@ -28,6 +48,7 @@ function M.read()
  local count=call(s,"getSymbolCount")
  if type(count)~="number" then return nil,"world map count unavailable" end
  local notes={}
+ local missingCoordinates=0
  for i=0,math.min(math.max(0,count),500)-1 do
    local symbol=call(s,"getSymbolByIndex",i)
    if symbol then
@@ -44,8 +65,13 @@ function M.read()
      if type(text)=="string" and type(x)=="number" and
         type(y)=="number" then
        notes[#notes+1]={text=text,x=x,y=y,z=0}
+     elseif type(text)=="string" then
+       missingCoordinates=missingCoordinates+1
      end
    end
+ end
+ if missingCoordinates>0 and #notes==0 then
+    return nil,"map symbols do not expose world coordinates"
  end
  return Territory.import(notes),nil
 end
