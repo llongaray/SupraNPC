@@ -213,20 +213,36 @@ function D.pulse(entry,player,team)
        return false
     end
     local ms=now()
-    if ms<(old.nextStrikeAt or 0) then return false end
+    -- Each game tick reevaluates whether the next attack can start.
+    -- Do not queue a second attack during an existing native animation.
+    if ms<(old.nextStrikeAt or 0) or old.lastPulseAt==ms then return false end
+    old.lastPulseAt=ms
     local mode=NativeAttack.choose(actor,target)
     if mode~="SHOVE" and mode~="SWING" and mode~="GROUND" then return false end
-    -- Standing threats take precedence over a downed zombie underfoot.
     if mode=="GROUND" and entry.lastObservation and
        (entry.lastObservation.nearStanding or 0)>0 then return false end
+    if call(actor,"isAttacking")==true or
+       call(actor,"isAttackStarted")==true then return false end
     if Walking.active(id) then cancel(entry,"alcance de ataque") end
     local ok,reason=NativeAttack.execute(actor,target,mode,player,team)
-    old.nextStrikeAt=ms+(ok and 260 or
-        reason=="attack animation running" and 80 or 140)
+    -- 35 ms is only for the engine to start an accepted animation,
+    -- not an artificial attack/cooldown delay. Lua polling is every tick.
+    old.nextStrikeAt=ms+(ok and 35 or
+        reason=="attack animation running" and 0 or 60)
     if ok then
         old.nativeRejects=0
         old.lastAction=mode=="GROUND" and "STOMP" or mode
         entry.navStatus=old.lastAction
+        old.pulseAccepted=(old.pulseAccepted or 0)+1
+        if ms-(old.lastPulseSummary or 0)>=2000 then
+            Core.log("COMBAT_PULSE "..id..
+                " accepted="..old.pulseAccepted..
+                " kind="..tostring(mode)..
+                " targetHealth="..tostring(call(target,"getHealth"))..
+                " targetDown="..tostring(fallen(target)))
+            old.lastPulseSummary=ms
+            old.pulseAccepted=0
+        end
     elseif reason~="attack animation running" and
         reason~=old.lastPulseError then
         Core.log("COMBAT_PULSE "..id.." "..tostring(mode)..
@@ -407,8 +423,8 @@ function D.update(entry,player,team)
           else
               ok,reason=NativeAttack.execute(actor,hitTarget,
                   action=="STOMP" and "GROUND" or action,player,team)
-              old.nextStrikeAt=nowMs+(ok and 260 or
-                  reason=="attack animation running" and 80 or 140)
+              old.nextStrikeAt=nowMs+(ok and 35 or
+                  reason=="attack animation running" and 0 or 60)
           end
        elseif action=="SHOVE" then
           -- Legacy test adapter where the mock has no DoAttack.
@@ -417,8 +433,9 @@ function D.update(entry,player,team)
           ok,reason=D.hit(actor,hitTarget)
        else reason="native attack unavailable" end
     end
-    old.nextAction=nowMs+(actor.DoAttack and 180 or
-        (action=="SHOVE" and 550 or action=="SWING" and 650 or D.PERIOD_MS))
+    old.nextAction=nowMs+(stance=="AGGRESSIVE" and 0 or
+        (actor.DoAttack and 180 or
+        (action=="SHOVE" and 550 or action=="SWING" and 650 or D.PERIOD_MS)))
     if action=="SHOVE" and ok then
        old.shoveTarget=hitTarget
        old.shoveCheck=nowMs+600
@@ -493,9 +510,9 @@ function D.update(entry,player,team)
            entry.navStatus="TARGET_BLOCKED"
        end
     end
-    old.nextAction=nowMs+550
+    old.nextAction=nowMs+(stance=="AGGRESSIVE" and 0 or 550)
  else
-    old.nextAction=nowMs+420
+    old.nextAction=nowMs+(stance=="AGGRESSIVE" and 0 or 420)
  end
  if old.lastLogged~=action or old.lastTactic~=tactic then
     Core.log("TACTIC "..id.." "..tactic.."/"..action..
