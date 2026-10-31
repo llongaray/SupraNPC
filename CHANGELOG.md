@@ -1,4 +1,13 @@
 # Changelog — SupraNPC
+## 0.1.14-dev — 2026-10-31
+
+- Novo `CombatTactics.lua`: decisão determinística baseada na quantidade de zumbis em pé/caídos, distância e apoio físico de aliado.
+- `NPCDefense.lua`: observação de `isOnFloor/isProne/isGettingUp`, grupo de inimigos visíveis, knockDown probabilístico, fases SHOVE/BACKSTEP/WAIT/PIN/STOMP/FLEE/APPROACH e retomada de ordens.
+- `NPCWalking.lua`: escolher tile livre e carregado na direção contrária a zumbis, sem teleporte.
+- `NPCController.lua`: informação de player/equipe e execução tática antes de ordens comuns.
+- Testes `combat_tactics_spec.lua`, `npc_defense_spec.lua`, `defense_controller_integration_spec.lua` revisados.
+- **Avisos:** queda nativa não comprova animação de shove, posicionamento próximo não garante pinar fisicamente, `Hit` não comprova animação de stomp. Movimentação e combate requerem teste real na B42.13.1.
+
 ## 0.1.13-dev — 2026-10-31
 
 - Adicionado `NPCDefense.lua` com varredura limitada de zumbis `IsoZombie` carregados e visíveis, prioridade máxima de autodefesa e seleção de alvo exclusivo.
