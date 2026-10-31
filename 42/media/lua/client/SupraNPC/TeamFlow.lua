@@ -33,6 +33,19 @@ local function snapshotColor(visual, getter)
     return { r = r, g = g, b = b }
 end
 
+-- O editor vanilla usa MainScreen.instance.avatar para mudancas de corpo/genero
+-- e usa MainScreen.instance.desc para atributos. Devem apontar para o MESMO NPC.
+local function attachAvatar(main)
+    if not main or not main.desc then return end
+    if main.avatar and IsoSurvivor and IsoSurvivor.new then
+        main.avatar = IsoSurvivor.new(main.desc, nil, 0, 0, 0)
+    end
+    local editor = main.charCreationMain
+    if editor and editor.avatarPanel and editor.setAvatarFromUI then
+        editor:setAvatarFromUI()
+    end
+end
+
 local function takeProfession()
     local main = screen()
     local p = main and main.charCreationProfession
@@ -128,9 +141,13 @@ local function enterNPC(index)
     if not s or not s.charCreationProfession or not s.charCreationMain then
         error("telas vanilla nao disponiveis")
     end
+    -- Fechar aparencia antes de trocar o descritor exibido.
     s.charCreationMain:setVisible(false)
-    s.desc = SurvivorFactory.CreateSurvivor()
-    if not s.desc then error("SurvivorFactory.CreateSurvivor retornou nil") end
+    s.charCreationProfession:setVisible(false)
+    local nextDescriptor = SurvivorFactory.CreateSurvivor()
+    if not nextDescriptor then error("SurvivorFactory.CreateSurvivor retornou nil") end
+    s.desc = nextDescriptor
+    attachAvatar(s)
     resetProfession()
 
     -- Os widgets de nome pertencem à tela reutilizada; limpar explicitamente
@@ -146,9 +163,11 @@ local function enterNPC(index)
     end
 
     Flow.session.index = index
-    s.charCreationProfession:setVisible(true)
+    Flow.session.stage = "profession"
     Flow.error = nil
-    Core.log("Criando NPC " .. index .. " de " .. Flow.session.total)
+    s.charCreationProfession:setVisible(true)
+    if Core.TeamFlow and Core.TeamFlow.bindButtons then Core.TeamFlow.bindButtons() end
+    Core.log("Etapa PROFISSAO NPC " .. index .. "/" .. Flow.session.total)
 end
 
 local function restorePlayer()
@@ -157,6 +176,8 @@ local function restorePlayer()
     local s = screen()
     if not s then return end
     s.desc = session.playerDescriptor
+    if session.playerAvatar then s.avatar = session.playerAvatar end
+    attachAvatar(s)
     restoreProfession(session.playerProfession)
     local editor = s.charCreationMain
     if editor and editor.forenameEntry and editor.surnameEntry then
@@ -210,6 +231,12 @@ function Flow.onMainClick(creation, button, x, y, original)
     if not button or button.internal ~= "NEXT" or not Core.isSolo() then return false end
     if Flow.session then
         local session = Flow.session
+        if session.stage ~= "appearance" then
+            Flow.error = "Confirme primeiro a profissao e os tracos do NPC " .. session.index
+            Core.log("NEXT de aparencia ignorado: etapa atual=" .. tostring(session.stage))
+            return true
+        end
+        Core.log("Finalizando APARENCIA NPC " .. session.index .. "/" .. session.total)
         local ok, err = pcall(captureNPC, session.index, creation)
         if not ok then
             Core.log("Erro ao finalizar NPC: " .. tostring(err))
@@ -246,10 +273,12 @@ function Flow.onMainClick(creation, button, x, y, original)
             total = roster.count,
             index = 0,
             playerDescriptor = s.desc,
+            playerAvatar = s.avatar,
             playerProfession = takeProfession(),
             playerFirst = creation.forenameEntry:getText(),
             playerLast = creation.surnameEntry:getText()
         }
+        Core.log("Jogador concluido; iniciando criacao sequencial de " .. roster.count .. " NPC(s).")
         enterNPC(1)
     end)
     if not ok then
@@ -274,6 +303,9 @@ function Flow.bindButtons()
     if p and p.backButton then
         p.backButton.onclick = CharacterCreationProfession.onOptionMouseDown
     end
+    if p and p.playButton then
+        p.playButton.onclick = CharacterCreationProfession.onOptionMouseDown
+    end
 end
 
 function Flow.install()
@@ -286,15 +318,32 @@ function Flow.install()
 
     local originalMain = CharacterCreationMain.onOptionMouseDown
     CharacterCreationMain.onOptionMouseDown = function(self, button, x, y)
+        if Flow.session and button and button.internal == "BACK" then
+            Flow.session.stage = "profession"
+            Core.log("Voltando a PROFISSAO NPC " .. Flow.session.index)
+        end
         if Flow.onMainClick(self, button, x, y, originalMain) then return end
         return originalMain(self, button, x, y)
     end
 
     local originalProf = CharacterCreationProfession.onOptionMouseDown
     CharacterCreationProfession.onOptionMouseDown = function(self, button, x, y)
-        if Flow.session and button and button.internal == "BACK" then
-            cancelNPC()
-            return
+        if Flow.session and button then
+            if button.internal == "BACK" then
+                cancelNPC()
+                return
+            elseif button.internal == "NEXT" then
+                Core.log("Profissao/traits escolhidos para NPC " .. Flow.session.index)
+                local ok, err = pcall(originalProf, self, button, x, y)
+                if not ok then
+                    Flow.error = "Erro na tela de profissao (ver console)"
+                    Core.log("Erro ao abrir aparencia do NPC " .. Flow.session.index .. ": " .. tostring(err))
+                    return
+                end
+                Flow.session.stage = "appearance"
+                Core.log("Etapa APARENCIA NPC " .. Flow.session.index .. "/" .. Flow.session.total)
+                return
+            end
         end
         return originalProf(self, button, x, y)
     end
@@ -344,6 +393,9 @@ function Flow.install()
             local result = oldCreateProf(self, ...)
             if self.backButton then
                 self.backButton.onclick = CharacterCreationProfession.onOptionMouseDown
+            end
+            if self.playButton then
+                self.playButton.onclick = CharacterCreationProfession.onOptionMouseDown
             end
             return result
         end
