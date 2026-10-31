@@ -2,7 +2,7 @@
 -- Nenhuma dependência externa; build de referência 42.13.1.
 SupraNPC = SupraNPC or {}
 local M = SupraNPC
-M.VERSION = "0.1.0-dev"
+M.VERSION = "0.1.1-dev"
 M.MOD_ID = "SupraNPC"
 M.MAX_COMPANIONS = 5
 M.DEFAULT_FOLLOW_DISTANCE = 2.5
