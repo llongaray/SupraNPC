@@ -80,8 +80,16 @@ MainScreen = { instance = {
 Core.pendingRoster = Roster.new(2)
 Core.isSolo = function() return true end
 local originalCalls = 0
+local initCalls = 0
+local untouchedInit = create.initPlayer
+create.initPlayer = function(self, ...)
+    initCalls = initCalls + 1
+    return untouchedInit(self, ...)
+end
+local originalInit = create.initPlayer
 local original = function(self, button)
     originalCalls = originalCalls + 1
+    assert(self.initPlayer == originalInit, "initPlayer vanilla nao pode ser substituido")
     self:initPlayer()
 end
 local button = { internal = "NEXT" }
@@ -128,6 +136,8 @@ assert(Core.pendingRoster.profiles[2].complete == true)
 assert(Roster.validate(Core.pendingRoster, true))
 assert(Core.pendingRoster.profiles[1].id ~= Core.pendingRoster.profiles[2].id)
 assert(Flow.session == nil)
+assert(create.initPlayer == originalInit)
+assert(initCalls >= 4, "initPlayer original precisa executar no loading")
 print("[SupraNPC] teste de transicoes personagem->NPCs->mundo: OK")
 
 -- Regressao: ISButton retém onclick no momento de create().
