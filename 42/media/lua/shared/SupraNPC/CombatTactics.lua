@@ -33,7 +33,7 @@ function T.plan(state,o)
     if o.mustRetreat then
        action,tactic="FLEE","DANGER"
        state.escape=true
-    elseif distant==0 then
+    elseif distant==0 and (o.alertDown or 0)==0 then
        action,tactic="RESUME","NONE"
        state.escape=false;state.failedShoves=0
     elseif good(o.alertDistance) and
