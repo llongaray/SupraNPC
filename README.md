@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.14-dev — táticas de combate: empurrar/recuar, aproximar de zumbi caído, fuga sozinho e apoio com aliados.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.15-dev — visão em cone, avaliação de armas e risco por equipe, empurrões persistentes, fuga antecipada e diálogos dos NPCs.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -64,6 +64,20 @@ O módulo só conta zumbis reais `IsoZombie` vivos e visíveis. O jogador e outr
 **Limitações a validar na B42.13.1:** o empurrão usa a API de queda `knockDown` com chance e só aceita o estado de queda ao observá-lo; a animação original de shove não está comprovada. `PIN` aproxima o NPC do corpo, mas ainda não garante impedir que o zumbi levante por colisão. `STOMP` usa dano direcionado ao zumbi, mas a animação de pisoteio também precisa de validação. A movimentação física e a estratégia com vários NPCs continuam experimentais.
 
 [Checklist específico da 0.1.14-dev](docs/TEST_CHECKLIST_0.1.14.md).
+
+## Correções após o teste real da 0.1.14 (v0.1.15-dev)
+
+O teste confirmou **Seguir**, balões do jogador, empurrão e saúde do NPC. Identificou visão de curta distância, empurrão interrompido por fuga, demora em fugir diante de horda e ausência de respostas dos NPCs.
+
+- **Percepção:** novo `NPCPerception.lua` usa cone de 130° até 12 tiles, detecção próxima 360°, oclusão por `CanSee()`, contagem de zumbis na área e antecipação de hordas. Dentro de ~8 tiles de um zumbi visto o NPC pode interceptar antes de ser atacado.
+- **Equipamento e risco:** avalia arma melee, desarmado e arma de fogo do próprio NPC, jogador e companheiros próximos. Usa escore determinístico para decidir lutar/recuar/fugir; **não inventa porcentagem de morte**. Armas de fogo ainda não disparam autonomamente.
+- **Combate:** 1–2 zumbis = empurrões sucessivos até queda real ou necessidade de recuar; grupos grandes e apoio insuficiente = fugir imediatamente. 3+ com membros melee preparados = continuar controlar via empurrão/recuo.
+- **Bug do FLEE:** a `ISWalkToTimedAction` de fuga permanece enfileirada até concluir/falhar; não é cancelada e recriada em cada ciclo. Assim o NPC pode começar a correr antes de ficar cercado.
+- **Voz textual:** `NPCSpeech.lua` agora desenha respostas dos NPCs e avisos como "Tem muitos! Foge!", "Estamos sem armas!" e "Socorro! Preciso de ajuda!", com cooldown.
+
+A experiência em jogo **ainda não foi validada nesta versão**, embora o GitHub Actions execute os testes de lógica. O controle da caminhada em interiores, o alcance efetivo da visão e a animação/dano dos golpes continuam dependentes da engine B42.13.1.
+
+[Checklist de teste 0.1.15-dev](docs/TEST_CHECKLIST_0.1.15.md).
 
 ## Estado das funcionalidades
 
