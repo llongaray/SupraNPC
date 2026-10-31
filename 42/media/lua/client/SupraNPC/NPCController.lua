@@ -5,6 +5,7 @@ local Orders = require("SupraNPC/Orders")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Walking = require("SupraNPC/NPCWalking")
 local Defense = require("SupraNPC/NPCDefense")
+local Navigation = require("SupraNPC/NPCNavigation")
 local Controller = {entries={},ticks=0}
 local STANCES = {PASSIVE=true, DEFENSIVE=true, AGGRESSIVE=true}
 local function call(obj,method,...)
@@ -35,7 +36,10 @@ local function persist(entry)
 end
 function Controller.clear()
     Defense.clear()
-    for id in pairs(Controller.entries) do Walking.cancel(id,"limpeza") end
+    for id in pairs(Controller.entries) do
+        Walking.cancel(id,"limpeza")
+        Navigation.clear(id)
+    end
     Controller.entries,Controller.ticks={},0
 end
 function Controller.attach(profile,actor)
@@ -85,6 +89,7 @@ function Controller.order(id,command,player,which)
     entry.navError=nil
     entry.navTries=0
     entry.navDisabled=false
+    Navigation.clear(id)
     entry.anchor=nil
     entry.nextRequest=0
     entry.navStatus=Defense.STATES[id] and "DEFENDING" or
@@ -126,7 +131,8 @@ local function walk(entry,square,target)
            result=="autodefesa prioridade maxima" or
            result=="alcance de ataque" or result=="troca de zumbi" or
            result=="ameaça encerrada" or result=="combat reset" or
-           result=="troca de fase combate" then return end
+           result=="troca de fase combate" or
+           result=="player moved" then return end
         if result=="sucesso" then
             entry.navStatus=entry.state.requested=="GUARD" and "HOLD" or "ARRIVED"
             entry.navError=nil
@@ -160,13 +166,28 @@ local function tickFollow(entry,player)
         entry.navTries=0
         return
     end
-    if Walking.active(entry.profile.id) and entry.anchor and
-       distance(px,py,entry.anchor.x,entry.anchor.y)<2 then
-        entry.navStatus="MOVING"
+    if Walking.active(entry.profile.id) then
+        local deviation=entry.anchor and
+            distance(px,py,entry.anchor.x,entry.anchor.y) or 999
+        if deviation<=1.25 then
+            entry.navStatus="MOVING"
+            return
+        end
+        Walking.cancel(entry.profile.id,"player moved")
+    end
+    -- Walk in loaded, accessible steps; never choose a tile behind a closed
+    -- window, locked door, wall or impassable fence.
+    local square,reason=Navigation.next(actor,px,py,pz,
+        entry.profile.id,Walking.free,Core.DEFAULT_FOLLOW_DISTANCE)
+    if not square then
+        if reason=="already near" or reason=="door opened" then
+            entry.navStatus=reason=="door opened" and "OPEN_DOOR" or "NEAR"
+        else
+            entry.navStatus="REPATH"
+            entry.navError=tostring(reason)
+        end
         return
     end
-    local square=Walking.pickNear(player,actor)
-    if not square then fail(entry,"sem tile livre perto do jogador");return end
     walk(entry,square,{x=px,y=py})
 end
 local function tickGuard(entry)
