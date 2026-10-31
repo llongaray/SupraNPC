@@ -99,7 +99,7 @@ function Controller.stance(id,stance)
     if not STANCES[stance] then return false,"Postura invalida" end
     entry.stance=stance
     persist(entry)
-    Core.log("STANCE "..id.." "..stance.." (sem combate automatico)")
+    Core.log("STANCE "..id.." "..stance.." intercept range updated")
     return true
 end
 local function fail(entry,reason)
