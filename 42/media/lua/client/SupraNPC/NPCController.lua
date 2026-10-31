@@ -125,7 +125,8 @@ local function walk(entry,square,target)
            result=="ponto alcancado" or result=="entidade perdida" or
            result=="autodefesa prioridade maxima" or
            result=="alcance de ataque" or result=="troca de zumbi" or
-           result=="ameaça encerrada" or result=="combat reset" then return end
+           result=="ameaça encerrada" or result=="combat reset" or
+           result=="troca de fase combate" then return end
         if result=="sucesso" then
             entry.navStatus=entry.state.requested=="GUARD" and "HOLD" or "ARRIVED"
             entry.navError=nil
