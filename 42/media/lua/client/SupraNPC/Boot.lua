@@ -6,6 +6,8 @@ local TeamSetup = require("SupraNPC/TeamSetup")
 local TeamFlow = require("SupraNPC/TeamFlow")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Renderer = require("SupraNPC/Renderer")
+local Controller = require("SupraNPC/NPCController")
+local NPCUI = require("SupraNPC/NPCUI")
 
 local Boot = { ticks = 0, lastNotice = nil, interval = 90, maxRetries = 3 }
 
@@ -83,11 +85,14 @@ local function spawnStep(player, data)
         if profile.humanSpawned == true then
             -- Persistencia ainda em validacao: NUNCA criar um clone ao carregar.
             count = count + 1
+            local old = Adapter.get(profile.id)
+            if old then Controller.attach(profile, old) end
         else
             local ok, actor, err = pcall(Adapter.spawn, player, profile, reserved)
             if ok and actor then
                 profile.humanSpawned = true
                 count = count + 1
+                Controller.attach(profile, actor)
                 Core.log("NPC humano confirmado: " .. profile.id ..
                     " | nome=" .. profile.firstName)
             else
@@ -122,8 +127,10 @@ end
 local function onTick()
     if not Core.isSolo() then return end
     Boot.ticks = Boot.ticks + 1
-    if Boot.ticks % Boot.interval ~= 0 then return end
     local player = currentPlayer()
+    -- O controlador internamente limita seus ticks a 45, sem trabalho por frame.
+    if player then Controller.update(player) end
+    if Boot.ticks % Boot.interval ~= 0 then return end
     if not player or not player.getModData then return end
     if Core.pendingRoster then storeNewRoster(player) end
     local data = player:getModData().SupraNPC
@@ -141,6 +148,7 @@ local function onTick()
                 local existing = Adapter.findExisting(cell, profile.id)
                 if existing then
                     Adapter.attach(profile.id, existing)
+                    Controller.attach(profile, existing)
                     Core.log("NPC reanexado ao render: " .. profile.id)
                 end
             end
@@ -155,6 +163,7 @@ local function onTick()
         Boot.lastNotice = data.spawnStatus
     end
     Renderer.maintain(player)
+    NPCUI.ensure(data.roster)
 end
 
 local function onPlayerUpdate(actor)
@@ -183,6 +192,8 @@ local function onGameStart()
     Boot.ticks, Boot.lastNotice = 0, nil
     Adapter.clear()
     Renderer.reset()
+    Controller.clear()
+    NPCUI.close()
     local player = currentPlayer()
     if player and player.getModData then
         if Core.pendingRoster then storeNewRoster(player) end
@@ -200,6 +211,8 @@ if Events then
         TeamSetup.openWindow = nil
         Adapter.clear()
         Renderer.reset()
+        Controller.clear()
+        NPCUI.close()
         TeamSetup.install()
         TeamFlow.install()
         TeamFlow.bindButtons()
