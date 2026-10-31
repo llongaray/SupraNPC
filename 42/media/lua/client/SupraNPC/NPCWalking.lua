@@ -102,7 +102,7 @@ function W.pickRetreat(actor,threat,steps)
     for i=1,math.min(#candidates,6) do
         local item=candidates[i]
         local waypoint=Navigation.next(actor,item.x+0.5,item.y+0.5,
-            az,id,W.free,0.70,true)
+            az,id,W.free,0.70,true,true)
         if waypoint then return waypoint end
     end
     return nil
