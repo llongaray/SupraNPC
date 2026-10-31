@@ -52,6 +52,7 @@ function Speech.playerCommand(player,name,cmd,option,success)
 end
 local NPC_ANSWERS={
     FOLLOW={"Estou indo!","Estou com voce!"},
+    RETURN_BASE={"Vou para a base!","A caminho de casa!"},
     IDLE={"Entendido, vou esperar!","Vou ficar aqui."},
     GUARD={"Vou vigiar esse local.","Deixa comigo!"},
     PASSIVE={"Vou evitar problemas."},
