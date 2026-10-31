@@ -20,3 +20,4 @@ jobs:
         run: |
           lua5.1 tests/roster_spec.lua
           lua5.1 tests/team_flow_spec.lua
+          lua5.1 tests/spawn_proxy_spec.lua
