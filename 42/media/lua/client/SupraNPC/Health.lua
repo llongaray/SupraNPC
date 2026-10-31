@@ -67,10 +67,24 @@ function Health.inspect(actor, profile)
         result.health = number(call(bd, "getHealth"), 0, 100)
     end
     local stats = call(actor, "getStats")
-    result.pain = number(call(stats, "getPain"), 0, 100)
-    result.hunger = number(call(stats, "getHunger"), 0, 1)
-    result.thirst = number(call(stats, "getThirst"), 0, 1)
-    result.endurance = number(call(stats, "getEndurance"), 0, 1)
+    -- Build 42: valores migraram para Stats:get(CharacterStat.*).
+    -- Manter fallback B41 para stubs de testes e forks.
+    local function readStat(key, legacy, low, high)
+        local constant
+        if CharacterStat then
+            local ok, value=pcall(function() return CharacterStat[key] end)
+            if ok then constant=value end
+        end
+        local found=constant and call(stats,"get",constant) or nil
+        if found == nil then found=call(stats,legacy) end
+        return number(found,low,high)
+    end
+    result.pain = readStat("PAIN","getPain",0,100)
+    result.hunger = readStat("HUNGER","getHunger",0,1)
+    result.thirst = readStat("THIRST","getThirst",0,1)
+    result.endurance = readStat("ENDURANCE","getEndurance",0,1)
+    result.sources = {pain=result.pain ~= nil,hunger=result.hunger ~= nil,
+        thirst=result.thirst ~= nil,endurance=result.endurance ~= nil}
 
     local parts = call(bd, "getBodyParts")
     local count = number(call(parts, "size"), 0, 100) or 0
