@@ -67,8 +67,10 @@ local function resetProfession()
     local s = screen()
     local p = s.charCreationProfession
     -- Elimina a escolha anterior antes de inicializar outra ficha.
-    p:resetBuild()
+    -- Limpar a profissao do descriptor anterior ANTES do reset vanilla.
+    -- Caso contrario, onSelectProf tenta manipular os traits gratuitos do player.
     p.profession = nil
+    p:resetBuild()
     p.listboxProf.selected = 1
     p:onSelectProf(p:getSelectedProf())
     p:checkXPBoost()
@@ -76,8 +78,8 @@ end
 
 local function restoreProfession(saved)
     local p = screen().charCreationProfession
-    p:resetBuild()
     p.profession = nil
+    p:resetBuild()
     p.listboxProf.selected = saved.index or 1
     local def = saved.definition or p:getSelectedProf()
     p:onSelectProf(def)
