@@ -29,6 +29,7 @@ jobs:
           lua5.1 tests/team_flow_spec.lua
           lua5.1 tests/spawn_proxy_spec.lua
           lua5.1 tests/npc_combat_flags_spec.lua
+          lua5.1 tests/npc_input_isolation_spec.lua
           lua5.1 tests/npc_recovery_spec.lua
           lua5.1 tests/renderer_spec.lua
           lua5.1 tests/orders_engine_spec.lua
@@ -51,6 +52,7 @@ jobs:
           lua5.1 tests/native_attack_spec.lua
           lua5.1 tests/voice_commands_spec.lua
           lua5.1 tests/voice_hotkey_spec.lua
+          lua5.1 tests/voice_bridge_spec.lua
           lua5.1 tests/perception_spec.lua
           lua5.1 tests/risk_combat_spec.lua
           lua5.1 tests/defense_controller_integration_spec.lua
