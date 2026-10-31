@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.9-dev — spawn humano visualmente confirmado na B42.13.1; aplicação experimental das roupas selecionadas.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.10-dev — painel médico dos NPCs, vestuário com detalhes visuais e submenus de ordens/posturas.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -32,7 +32,7 @@ O diretório `SupraNPC/42/mod.info` fica dentro da raiz clonada. Ative o mod no 
 | Render extra via `RenderOpaqueObjectsInWorld` (FBO) | **Dois NPCs visíveis; estabilidade e oclusão ainda em testes** |
 | Restaurar jogador/câmera após criar um IsoPlayer | Implementado, **em teste** |
 | Recuperação do NPC após carregar save | Parcial; sem duplicação automática |
-| Nome/aparência/roupas do editor | Agora captura os tipos das roupas e tenta vestir cada NPC no spawn; cores/texturas e resultado in-game não validados |
+| Nome/aparência/roupas do editor | Captura roupas e propriedades visuais (cor, hue, textura), aplica no spawn; teste in-game pendente |
 | Controlador de ordens FOLLOW/GUARD/PROTECT/SELF_DEFEND/RETREAT | **Motor determinístico puro implementado, ainda não conectado ao NPC** |
 | Detecção anti-stuck | **Núcleo com retries limitados e testes, ainda não integrado à navegação** |
 | Configurações limitadas de comportamento | **Validação disponível, integração ao jogo pendente** |
@@ -72,11 +72,24 @@ Não são exigidos Python, Ollama, drivers específicos, servidores ou downloads
 
 O teste de 31/10/2026 exibiu **2 NPCs humanos próximos ao player**, mas ambos apareceram de roupa íntima. O `SpawnAdapter` anterior aplicava somente um kit fixo de três peças e podia falhar por incompatibilidade de body location.
 
-A nova rotina `client/SupraNPC/Wardrobe.lua` lê as peças realmente escolhidas do `SurvivorDesc:getWornItems()` na conclusão do editor e salva **somente seus tipos** em cada ficha. No primeiro spawn, tenta gerar e vestir os itens correspondentes via inventário do NPC e `setWornItem`, com logs de sucesso/falha. **Cores, textura alternativa e danos das roupas ainda não são reproduzidos fielmente.** O resultado ainda necessita teste na B42.13.1.
+A rotina `client/SupraNPC/Wardrobe.lua` lê as peças realmente escolhidas do `SurvivorDesc:getWornItems()` na conclusão do editor e salva os tipos, tint, hue e índices visuais em cada ficha. No primeiro spawn, tenta gerar e vestir os itens correspondentes via inventário do NPC e `setWornItem`, com logs de sucesso/falha. **Agora há tentativa de restaurar cores, tonalidades e variações de textura pela API ItemVisual; fidelidade total ainda não foi verificada in-game.** O resultado ainda necessita teste na B42.13.1.
 
 **Faça um save novo para esse teste:** os saves criados com versões anteriores não possuem `appearance.clothing` na ficha e podem manter NPCs já spawnados sem reaplicar roupa. Não clonar o NPC novamente automaticamente.
 
 A janela adicional **"Vida do Jogador"** mostrada no teste foi registrada como problema de interface: o motor pode identificar um `IsoPlayer` extra como personagem jogável. Nenhuma modificação invasiva no HUD foi feita para não comprometer a câmera ou o player principal.
+
+## Painel de NPCs e comandos — 0.1.10-dev
+
+O novo `client/SupraNPC/NPCUI.lua` cria uma **barra lateral de equipe** com nomes e porcentagens de vida de até cinco NPCs e um painel independente de inspeção médica. Clique no nome para consultar a vida real via `BodyDamage` (saúde geral, ferimentos, sangramento, dor e necessidades). Dados ausentes aparecem como N/D, não são inventados. A janela vanilla adicional "Vida do Jogador" observada anteriormente ainda não foi removida por depender da engine.
+
+No botão `>` de cada NPC, um menu de contexto com **submenus**:
+
+- **Ordens:** Seguir o jogador (navegação experimental), Aguardar aqui, Guardar esta posição, Guardar ponto do jogador.
+- **Postura:** Passiva, Defensiva ou Agressiva. **Atualmente apenas salva a preferência; combate ainda não foi implementado.**
+
+As ordens são guardadas por personagem no `ModData` e no roster do save. O `NPCController.lua` solicita caminhos por APIs nativas disponíveis do IsoPlayer, sem teleporte. **O deslocamento efetivo e a estabilidade dessas chamadas precisam ser testados no jogo.** Ao voltar ao menu, o painel é removido para evitar interfaces duplicadas.
+
+**Roteiro completo:** [docs/TEST_CHECKLIST_0.1.10.md](docs/TEST_CHECKLIST_0.1.10.md). Use save novo e descartável: as roupas de builds anteriores não continham o snapshot de todos os detalhes.
 
 ## Validar o próximo marco
 
@@ -97,6 +110,9 @@ lua5.1 tests/orders_engine_spec.lua
 lua5.1 tests/config_spec.lua
 lua5.1 tests/nav_monitor_spec.lua
 lua5.1 tests/wardrobe_spec.lua
+lua5.1 tests/wardrobe_visual_spec.lua
+lua5.1 tests/health_spec.lua
+lua5.1 tests/npc_controller_spec.lua
 ```
 
 Os testes verificam a lógica simulada, **não substituem o teste in-game de B42.13.1**.
