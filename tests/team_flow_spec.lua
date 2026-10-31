@@ -60,7 +60,11 @@ function profession:resetBuild()
     self.listboxProf.selected = 1
     self.listboxTraitSelected.items = {}
 end
-function profession:onSelectProf(def) self.profession = def end
+local professionSelectCalls = 0
+function profession:onSelectProf(def)
+    professionSelectCalls = professionSelectCalls + 1
+    self.profession = def
+end
 function profession:checkXPBoost() end
 function profession:addTrait(t) self.listboxTraitSelected.items[#self.listboxTraitSelected.items + 1] = { item = t } end
 function profession:setVisible(v) self.visible = v end
@@ -138,6 +142,7 @@ create.voicePitchSlider.value = -5
 -- Ultimo NPC: apos profissao, so entao finalizar aparencia.
 Flow.session.stage = "appearance"
 -- Ultimo NEXT: restaura descritor do player e passa ao vanilla UMA vez.
+local callsBeforeFinish = professionSelectCalls
 create.forenameEntry:setText("Bruno")
 create.surnameEntry:setText("NPC2")
 assert(Flow.onMainClick(create, button, 0, 0, original))
@@ -149,6 +154,8 @@ assert(#profession.listboxTraitSelected.items == 1)
 assert(profession.listboxTraitSelected.items[1].text == "Corajoso")
 assert(create.voiceTypeCombo.selected == 3)
 assert(create.voicePitchSlider:getCurrentValue() == 14)
+assert(professionSelectCalls == callsBeforeFinish,
+    "Restauração do jogador não pode recalcular profissão na transição para mundo")
 assert(Core.pendingRoster.profiles[2].firstName == "Bruno")
 assert(Core.pendingRoster.profiles[2].complete == true)
 assert(Roster.validate(Core.pendingRoster, true))
