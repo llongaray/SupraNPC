@@ -350,7 +350,7 @@ function D.update(entry,player,team)
         moveAway(entry,o.nearest,2,"BACKSTEP")
         old.nextAction=timestamp+950
     elseif action=="FLEE" then
-        moveAway(entry,o.nearest,4,"FLEE")
+        moveAway(entry,o.nearest or o.nearestDown,4,"FLEE")
         old.nextAction=timestamp+1100
     elseif action=="APPROACH" then
         local z=o.nearest
