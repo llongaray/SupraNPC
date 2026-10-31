@@ -1,7 +1,7 @@
 -- SupraNPC: falas do jogador apos ordens. Adaptado de
 -- ArayHumanNPCTest/ArayHumanSpeechBubble.lua (sem dependencia de IA).
 local Core = require("SupraNPC/Constants")
-local Speech = {active={},registered=false}
+local Speech = {active={},registered=false, alerts={}}
 local function now()
     if getTimestampMs then
         local ok,t=pcall(getTimestampMs)
@@ -35,6 +35,7 @@ local function show(actor,message)
     local at=now()
     for _,r in ipairs(Speech.active) do
         if r.actor==actor then
+            if #r.queue>=2 then table.remove(r.queue,1) end
             r.queue[#r.queue+1]=message
             return
         end
@@ -43,11 +44,51 @@ local function show(actor,message)
         actor=actor,text=message,created=at,expires=at+math.max(2600,
             math.min(8000,#message*90)),queue={}
     }
-    Core.log("SPEECH PLAYER: "..message)
+    Core.log("SPEECH: "..message)
 end
 function Speech.playerCommand(player,name,cmd,option,success)
     if not player then return end
     show(player,Speech.compose(name,cmd,option,success))
+end
+local NPC_ANSWERS={
+    FOLLOW={"Estou indo!","Estou com voce!"},
+    IDLE={"Entendido, vou esperar!","Vou ficar aqui."},
+    GUARD={"Vou vigiar esse local.","Deixa comigo!"},
+    PASSIVE={"Vou evitar problemas."},
+    DEFENSIVE={"Fico na defensiva."},
+    AGGRESSIVE={"Certo, estarei em alerta."}
+}
+local WARNINGS={
+    SPOTTED={"Zumbis la na frente!","Vi mortos por ali!"},
+    HELP={"Socorro! Preciso de ajuda!","Me ajuda aqui!"},
+    HORDE={"Tem muitos! Foge!","Nao vamos aguentar, corre!"},
+    UNARMED={"Estamos sem armas! Recuem!","Sem armas, melhor fugir!"},
+    FLEE={"Vou recuar!","Corram! Vou sair daqui!"},
+    COMBAT={"Deixa que eu seguro esse!","Vou derrubar ele!"},
+    RESUME={"Tudo limpo. Voltando!","Vou seguir a ordem!"}
+}
+local lastSaid={}
+function Speech.npcReply(actor,cmd,option,success)
+    if not actor then return end
+    local key=cmd=="STANCE" and option or cmd
+    local responses=NPC_ANSWERS[key]
+    if success==false then show(actor,"Nao consigo cumprir essa ordem!") return end
+    if not responses then show(actor,"Entendido!") return end
+    local n=(lastSaid[actor] or 0)+1
+    lastSaid[actor]=n
+    show(actor,responses[(n-1)%#responses+1])
+end
+function Speech.npcAlert(actor,kind,force)
+    if not actor or not WARNINGS[kind] then return false end
+    local when=now()
+    local entry=Speech.alerts[actor]
+    if not entry then entry={} Speech.alerts[actor]=entry end
+    if not force and entry[kind] and when-entry[kind]<11000 then return false end
+    entry[kind]=when
+    local options=WARNINGS[kind]
+    local index=math.floor(when/11000)%#options+1
+    show(actor,options[index])
+    return true
 end
 local function project(actor)
     local x,y,z=actor:getX(),actor:getY(),actor:getZ()
@@ -96,7 +137,11 @@ function Speech.draw()
         end
     end
 end
-function Speech.clear() Speech.active={} end
+function Speech.clear()
+    Speech.active={}
+    Speech.alerts={}
+    lastSaid={}
+end
 if Events and Events.OnPostUIDraw then
     Events.OnPostUIDraw.Add(Speech.draw)
     Speech.registered=true
