@@ -36,10 +36,29 @@ Keyboard.getKeyName=function(key)
     return key==56 and "LALT" or tostring(key)
 end
 shortcuts[V.KEY_ID]=10003
-assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
-assert(V.keyLabel()=="RECONFIGURAR" and labelCalls==0)
-pressed[1](10003)
+assert(V.getKey()==10003 and V.keyLabel()=="MOUSE BTN 3")
+assert(V.keyLabel()=="MOUSE BTN 3" and labelCalls==0)
+pressed[1](10003) -- mouse must never pass through keyboard event path
 assert(not V.active)
+local mouseDown=false
+Mouse={isButtonDown=function(btn)
+    assert(btn==3)
+    return mouseDown
+end}
+local errors={}
+V.setFeedback(function(t) errors[#errors+1]=t end)
+ticked[1]()
+mouseDown=true
+ticked[1]()
+ticked[1]()
+assert(#errors==1 and errors[1]:find("Microfone indisponivel",1,true))
+mouseDown=false
+ticked[1]()
+mouseDown=true
+ticked[1]()
+assert(#errors==2)
+mouseDown=false
+ticked[1]()
 shortcuts[V.KEY_ID]=-1
 assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
 shortcuts[V.KEY_ID]=256
@@ -63,6 +82,18 @@ assert(V.installRecognizer({
     stop=function() stopped=stopped+1;return true end
 }))
 assert(V.state=="READY")
+-- Same saved mouse binding may be used for full press/release with STT.
+shortcuts[V.KEY_ID]=10003
+mouseDown=true
+ticked[1]()
+assert(V.active and V.state=="LISTENING")
+ticked[1]()
+assert(V.active)
+mouseDown=false
+ticked[1]()
+assert(not V.active and stopped==1)
+V.reset()
+shortcuts[V.KEY_ID]=56
 pressed[1](56)
 assert(V.active and V.state=="LISTENING")
 assert(not V.press(56))
@@ -71,6 +102,9 @@ assert(not V.active and V.state=="PROCESSING" and stopped==1)
 assert(V.submitTranscript("Yong, me segue") and text=="Yong, me segue")
 assert(V.state=="READY")
 assert(not V.submitTranscript(""))
+-- Unbound synthetic IDs other than 10000..10007 remain invalid.
+shortcuts[V.KEY_ID]=10008
+assert(V.getKey()==0 and V.keyLabel()=="RECONFIGURAR")
 V.reset()
 assert(V.state=="READY")
 print("[SupraNPC] voice_hotkey_spec: OK")
