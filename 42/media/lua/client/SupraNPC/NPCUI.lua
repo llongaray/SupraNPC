@@ -302,7 +302,9 @@ function VoiceHelp:render()
     self:drawText("Tecla atual: "..VoiceHotkey.keyLabel().." | transcricao: "..
         (VoiceHotkey.recognizer and VoiceHotkey.state or "STT PENDENTE"),15,322,
         0.84,0.89,0.88,1,UIFont.Small)
-    self:drawText("STT pendente; microfone nao e testado pelo mod.",15,343,
+    self:drawText(VoiceHotkey.recognizer and
+        "STT local conectado: segure, fale e solte a tecla." or
+        "STT pendente: inicie SupraNPCVoice no Windows.",15,343,
         0.8,0.72,0.66,1,UIFont.Small)
 end
 function HUD.showVoiceHelp()
