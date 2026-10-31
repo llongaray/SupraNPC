@@ -123,7 +123,7 @@ function PTT.press(key)
     end
     if not PTT.recognizer then
         PTT.state="UNAVAILABLE"
-        notify("Microfone indisponivel: falta motor STT. Use o comando por texto.")
+        notify("STT nao integrado; use texto.")
         return false
     end
     local ok,result,detail=pcall(PTT.recognizer.start,PTT.recognizer,
