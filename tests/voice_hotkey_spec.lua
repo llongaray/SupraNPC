@@ -51,7 +51,7 @@ ticked[1]()
 mouseDown=true
 ticked[1]()
 ticked[1]()
-assert(#errors==1 and errors[1]:find("Microfone indisponivel",1,true))
+assert(#errors==1 and errors[1]:find("STT nao integrado",1,true))
 mouseDown=false
 ticked[1]()
 mouseDown=true
@@ -72,7 +72,7 @@ local feedback={}
 V.setFeedback(function(t) feedback[#feedback+1]=t end)
 pressed[1](56)
 assert(V.state=="UNAVAILABLE" and not V.active)
-assert(feedback[1]:find("Microfone indisponivel",1,true))
+assert(feedback[1]:find("STT nao integrado",1,true))
 local text=nil
 V.setHandler(function(t) text=t;return true end)
 local callback=nil
