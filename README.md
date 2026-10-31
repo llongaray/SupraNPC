@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.11-dev — correção de navegação, roupas pré-spawn, retratos 3D e avaliação médica com o componente corporal vanilla.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.12-dev — movimentação por TimedAction nativa, comandos por NPC, falas do jogador e leitura B42 de fome/sede/dor/energia.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -19,6 +19,23 @@ git -C "$env:USERPROFILE\Zomboid\mods\SupraNPC" pull origin main
 ```
 
 O diretório `SupraNPC/42/mod.info` fica dentro da raiz clonada. Ative o mod no menu Mods do jogo.
+
+## Ajustes após o teste de 31/10/2026 (v0.1.12-dev)
+
+O teste in-game da 0.1.11 confirmou **roupas completas e retratos 3D**, mas os NPCs não caminharam; "Aguardar aqui" também não interrompia fisicamente o personagem e fome/sede/dor/energia apareciam como N/D.
+
+**Causa técnica / alteração:**
+- O protótipo próprio [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest) controla a locomoção com `ISWalkToTimedAction:new(npc,square)` e `ISTimedActionQueue.add(action)`, validando a fila por entidade. O `SupraNPC` agora utiliza um adaptador `NPCWalking.lua` baseado nesse código. Isso substitui o loop anterior de `PathFindBehavior2:update()`, que não produziu movimento no teste.
+- Seguir: seleciona tile livre próximo ao jogador e mantém uma caminhada de cada vez; um deslocamento significativo do alvo replaneja a rota.
+- Aguardar: invalida a ação em andamento, força seu encerramento, retira **somente** o TimedAction desse NPC e cancela o caminho nativo; não usa a fila do jogador.
+- Guardar: fica parado se já estiver na posição, ou caminha para o ponto gravado. Se o tile estiver ocupado, procura um adjacente livre.
+- `Health.lua`: para B42 lê `Stats:get(CharacterStat.HUNGER/THIRST/PAIN/ENDURANCE)`; getters antigos como fallback. Não inventa valores.
+- `NPCSpeech.lua`: o jogador tem falas visíveis em comandos de seguir, aguardar, guardar e alterar postura. Baseado no desenho de bolhas do protótipo.
+- O painel da equipe diferencia a **ordem solicitada** do **estado de execução** `MOVING`, `WAITING`, `NEAR`, `HOLD`, `FAILED` e `BLOCKED`.
+
+**ATENÇÃO:** testes de Lua 5.1 e mocks não simulam a engine. Movimentação e áudio/texto em jogo continuam pendentes de validação na B42.13.1; não é uma correção confirmada até o próximo teste real. A ordem "postura agressiva" ainda não implementa combate.
+
+Checklist: [TEST_CHECKLIST_0.1.12.md](docs/TEST_CHECKLIST_0.1.12.md). Use apenas save descartável.
 
 ## Estado das funcionalidades
 
