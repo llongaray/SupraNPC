@@ -11,7 +11,8 @@ local Core = require("SupraNPC/Constants")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Health = require("SupraNPC/Health")
 local Controller = require("SupraNPC/NPCController")
-local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil }
+local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil,
+    feedback = nil, feedbackTicks = 0 }
 
 local function mouseX() return type(getMouseX) == "function" and getMouseX() or 250 end
 local function mouseY() return type(getMouseY) == "function" and getMouseY() or 250 end
@@ -164,8 +165,18 @@ local function dispatch(id, cmd, option)
     else
         ok, reason = Controller.order(id, cmd, player, option)
     end
+    HUD.feedback = {
+        id = id, text = ok and
+            (cmd == "STANCE" and ("Postura: " .. tostring(option)) or
+             ("Ordem: " .. tostring(cmd))) or
+            ("Falha: " .. tostring(reason))
+    }
+    HUD.feedbackTicks = 0
     if not ok then
         Core.log("COMANDO " .. tostring(id) .. " falhou: " .. tostring(reason))
+    else
+        Core.log("COMANDO confirmado " .. tostring(id) ..
+            " " .. tostring(cmd))
     end
 end
 
@@ -251,6 +262,10 @@ function Sidebar:onMenu(button) HUD.openMenu(button.npcId) end
 function Sidebar:render()
     ISPanel.render(self)
     self.refreshCount = self.refreshCount + 1
+    if HUD.feedback then
+        HUD.feedbackTicks = HUD.feedbackTicks + 1
+        if HUD.feedbackTicks > 400 then HUD.feedback = nil end
+    end
     self:drawText("SUPRANPC - EQUIPE", 9, 8,0.4,0.9,0.45,1,UIFont.Small)
     for i,profile in ipairs(self.roster.profiles) do
         if self.refreshCount % 35 == 1 or not self.healthCache[profile.id] then
@@ -270,6 +285,10 @@ function Sidebar:render()
         self:drawText(order,61,y+10,0.7,0.78,0.75,1,UIFont.Small)
         self:drawText(hp.health and (math.floor(hp.health) .. "%") or "?",
             226,y+10,0.7,0.78,0.75,1,UIFont.Small)
+    end
+    if HUD.feedback then
+        local msg = HUD.feedback.text
+        self:drawText(msg:sub(1,38),8,self.height-12,0.96,0.74,0.38,1,UIFont.Small)
     end
 end
 
