@@ -22,6 +22,8 @@ function actor:CanSee(z) return not z.blocked end
 function actor:getModData() return {SupraNPC_IsNPC=true} end
 function actor:faceThisObject() end
 function actor:setDoShove(v) self.shove=v end
+function actor:setAuthorizedHandToHandAction(v) self.authorizedAction=v end
+function actor:setAuthorizedHandToHand(v) self.authorizedMelee=v end
 function actor:DoAttack(charge)
   assert(charge==1)
   self.attacks[#self.attacks+1]=self.shove and "SHOVE" or "NORMAL"
@@ -29,6 +31,7 @@ function actor:DoAttack(charge)
 end
 assert(A.choose(actor,target)=="SHOVE")
 assert(A.execute(actor,target,"SHOVE"))
+assert(actor.authorizedAction==true and actor.authorizedMelee==true)
 assert(actor.attacks[1]=="SHOVE" and actor.shove==false)
 target.x=1.6
 assert(A.choose(actor,target)=="SWING")
