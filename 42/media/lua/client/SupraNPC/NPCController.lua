@@ -264,6 +264,11 @@ function Controller.update(player)
     for id,entry in pairs(Controller.entries) do
         if Adapter.get(id)==entry.actor and
            call(entry.actor,"isDead")~=true then
+            -- The native climb animation must finish before another
+            -- combat/path action can claim the IsoPlayer state machine.
+            if Navigation.isClimbing and Navigation.isClimbing(id,entry.actor) then
+                entry.navStatus="CLIMB_WINDOW"
+            else
             -- Defesa passa antes de QUALQUER ordem manual; nao apaga requested.
             local fighting=Defense.update(entry,player,Controller.entries)
             if fighting then
@@ -276,6 +281,7 @@ function Controller.update(player)
                 elseif entry.state.active=="GUARD" then tickGuard(entry)
                 elseif entry.state.active=="RETURN_BASE" then tickReturnBase(entry,player) end
             end
+            end -- climbing check
             Movement.update(entry,player)
         else
             Walking.cancel(id,"entidade perdida")
