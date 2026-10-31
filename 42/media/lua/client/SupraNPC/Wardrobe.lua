@@ -71,27 +71,18 @@ function Wardrobe.equip(actor, saved)
     if not inventory then return 0, #saved, "inventario indisponivel" end
     local worn, failed = 0, 0
     for _, record in ipairs(saved) do
-        local item = InventoryItemFactory.CreateItem(record.type)
-        if item then
+        local okCreate, item = pcall(InventoryItemFactory.CreateItem, record.type)
+        if okCreate and item then
             local location = locationOf(item)
             if location then
-                local wasAdded = call(inventory, "AddItem", item)
-                if wasAdded == nil then
-                    -- Alguns AddItem sao void: confirmar usando contains().
-                    local exists = call(inventory, "contains", item)
-                    if exists == false then
-                        failed = failed + 1
-                    else
-                        local ok = pcall(function()
-                            actor:setWornItem(location, item)
-                        end)
-                        if ok then worn = worn + 1 else failed = failed + 1 end
-                    end
-                else
-                    local ok = pcall(function()
+                local okAdd = pcall(function() inventory:AddItem(item) end)
+                if okAdd then
+                    local okWear = pcall(function()
                         actor:setWornItem(location, item)
                     end)
-                    if ok then worn = worn + 1 else failed = failed + 1 end
+                    if okWear then worn = worn + 1 else failed = failed + 1 end
+                else
+                    failed = failed + 1
                 end
             else
                 failed = failed + 1
