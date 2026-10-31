@@ -135,7 +135,7 @@ function D.hit(actor,target)
     -- nativos que selecionam colisao automaticamente podem atingir aliados.
     pcall(function() if actor.faceThisObject then actor:faceThisObject(target) end end)
     local ok,res=pcall(function()
-        return target:Hit(weapon,actor,damage,false,1.0)
+        return target:Hit(weapon,actor,damage,false,1.0,false)
     end)
     if not ok then return false,"Hit falhou: "..tostring(res) end
     Core.log("DEFENSE HIT zombie damage="..string.format("%.2f",damage))
