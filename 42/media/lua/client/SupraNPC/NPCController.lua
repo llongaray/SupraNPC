@@ -78,6 +78,12 @@ function Controller.order(id, command, player, which)
     end
     local ok, reason = Orders.set(entry.state, command)
     if not ok then return false, reason end
+    -- CANCELAR a rota antiga imediatamente ao receber nova ordem.
+    -- Sem isto, Aguardar alterava o texto mas o path anterior persistia.
+    local behavior = call(entry.actor, "getPathFindBehavior2")
+    if behavior and behavior.cancel then
+        pcall(function() behavior:cancel() end)
+    end
     entry.navDisabled = false
     entry.navError = nil
     entry.navTries = 0
