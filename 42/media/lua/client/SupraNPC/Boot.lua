@@ -1,5 +1,5 @@
--- SupraNPC 0.1.3-dev: bootstrap e teste de spawn de corpos proxy em B42.
--- Nao cria IsoPlayer. Nenhuma dependencia externa. Single-player.
+-- SupraNPC 0.1.4-dev: criacao de fichas; spawn inseguro desativado.
+-- A tentativa 0.1.3 de proxy criou zumbis reais e foi bloqueada.
 local Core = require("SupraNPC/Constants")
 local Roster = require("SupraNPC/Roster")
 local TeamSetup = require("SupraNPC/TeamSetup")
@@ -49,6 +49,11 @@ local function currentPlayer()
 end
 
 local function spawnStep(player, data)
+    if Adapter.MODE == "disabled" then
+        if data then data.spawnStatus = "blocked_unsafe_proxy" end
+        Core.log("SPAWN BLOQUEADO: criacao de zumbis nao equivale a NPC humano.")
+        return
+    end
     if not Core.EXPERIMENTAL_SPAWN then return end
     if not data or not data.roster or
         (data.spawnStatus ~= "pending_proxy" and data.spawnStatus ~= "retry_proxy") then
@@ -125,7 +130,8 @@ local function onTick()
 end
 
 local function onZombieUpdate(zombie)
-    if not zombie or not Core.EXPERIMENTAL_SPAWN then return end
+    -- Mitigacao para proxies antigos, mesmo com spawn novo desativado.
+    if not zombie then return end
     local ok, data = pcall(function() return zombie:getModData() end)
     if ok and data and data.SupraNPC_Proxy == true then
         Adapter.enforceNeutral(zombie)
@@ -134,8 +140,8 @@ end
 
 local function onGameBoot()
     Core.log("Versao " .. Core.VERSION .. " carregada; jogo alvo B42.13.1.")
-    Core.log("Spawn automatico=" .. tostring(Core.EXPERIMENTAL_SPAWN) ..
-        " | motor=IsoZombie proxy (experimental, nao jogador).")
+    Core.log("Spawn humano ainda NAO implementado. Modo=" .. tostring(Adapter.MODE) ..
+        "; bloqueio de zumbis ativo.")
     TeamSetup.install()
     TeamFlow.install()
     TeamFlow.bindButtons()
