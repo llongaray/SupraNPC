@@ -1,6 +1,6 @@
 -- SupraNPC: navigation with safe, bounded door/window handling for B42.
 -- Never unlock, smash, climb, teleport, open remote doors or cross walls.
-local N={blocked={},repathRadius=16,maxVisited=640,ttlMs=14000}
+local N={blocked={},climbing={},repathRadius=16,maxVisited=640,ttlMs=14000}
 local function call(obj,key,...)
  if not obj then return nil end
  local args={...}
@@ -94,6 +94,19 @@ function N.tryOpen(id,actor,edge)
 end
 function N.clear(id)
  N.blocked[id]=nil
+ N.climbing[id]=nil
+end
+function N.isClimbing(id,actor)
+ local state=N.climbing[id]
+ if not state or not actor then return false end
+ local x,y=call(actor,"getX"),call(actor,"getY")
+ if type(x)~="number" or type(y)~="number" or
+    (math.floor(x)~=state.x or math.floor(y)~=state.y) or
+    now()-state.started>4500 then
+    N.climbing[id]=nil
+    return false
+ end
+ return true
 end
 -- Opening a window does not authorize a crossing (climbing not supported).
 -- Called only in a local, already-failed route; one attempt then use detour.
@@ -131,7 +144,9 @@ function N.tryClimbWindow(id,actor,edge,opposite)
    return false,"climb rejected" end
  if zombiesNear(actor,3) then return false,"zombies near window" end
  if not actor or not actor.climbThroughWindow then return false,"climb unavailable" end
+ local ax,ay=call(actor,"getX"),call(actor,"getY")
  local ok,err=pcall(function() actor:climbThroughWindow(win) end)
+ if ok then N.climbing[id]={started=now(),x=math.floor(ax),y=math.floor(ay)} end
  N.ignore(id,win) -- no repeated climb until the engine finishes or cooldown expires
  if not ok then return false,tostring(err) end
  return true,"window climbing"
