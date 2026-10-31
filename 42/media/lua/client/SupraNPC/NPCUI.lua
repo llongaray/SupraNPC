@@ -159,6 +159,8 @@ function Sidebar:new(roster)
     o.backgroundColor = {r=0.055,g=0.065,b=0.08,a=0.84}
     o.borderColor = {r=0.25,g=0.45,b=0.3,a=0.9}
     o.moveWithMouse = true
+    o.refreshCount = 0
+    o.healthCache = {}
     return o
 end
 function Sidebar:initialise() ISPanel.initialise(self) end
@@ -184,9 +186,13 @@ function Sidebar:onHealth(button) HUD.showHealth(button.npcId) end
 function Sidebar:onMenu(button) HUD.openMenu(button.npcId) end
 function Sidebar:render()
     ISPanel.render(self)
+    self.refreshCount = self.refreshCount + 1
     self:drawText("SUPRANPC - EQUIPE", 9, 8,0.4,0.9,0.45,1,UIFont.Small)
     for i,profile in ipairs(self.roster.profiles) do
-        local hp = Health.inspect(Adapter.get(profile.id), profile)
+        if self.refreshCount % 35 == 1 or not self.healthCache[profile.id] then
+            self.healthCache[profile.id] = Health.inspect(Adapter.get(profile.id), profile)
+        end
+        local hp = self.healthCache[profile.id]
         local y = 67 + (i-1)*59
         local frac = hp.health and clamp01(hp.health / 100) or 0
         self:drawRect(9,y,190,8,0.86,0.18,0.18,0.19)
