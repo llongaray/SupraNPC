@@ -4,6 +4,7 @@
 local Core = require("SupraNPC/Constants")
 local Wardrobe = require("SupraNPC/Wardrobe")
 local CombatFlags = require("SupraNPC/NPCCombatFlags")
+local InputIsolation = require("SupraNPC/NPCInputIsolation")
 local Adapter = { MODE = "iso_player", actors = {}, attempt = 0 }
 
 local OFFSETS = {
@@ -23,17 +24,10 @@ local function call(obj, method, ...)
 end
 
 local function restoreOwner(player)
-    if not player then return end
-    if IsoPlayer and IsoPlayer.setInstance then
-        pcall(function() IsoPlayer.setInstance(player) end)
-    end
-    if IsoCamera and IsoCamera.setCameraCharacter then
-        pcall(function()
-            IsoCamera.setCameraCharacter(player)
-        end)
-    end
+    return InputIsolation.restoreOwner(player)
 end
 Adapter.restoreOwner = restoreOwner
+Adapter.getOwner = InputIsolation.getOwner
 
 local function isFree(square, reserved, key)
     if not square or reserved[key] then return false end
@@ -101,12 +95,14 @@ function Adapter.attach(id, actor)
     if not id or not actor then return false end
     Adapter.actors[id] = actor
     CombatFlags.configure(actor,id)
+    InputIsolation.isolate(actor,id)
     return true
 end
 
 function Adapter.clear()
     Adapter.actors = {}
     Adapter.attempt = 0
+    InputIsolation.clear()
 end
 
 local function descriptorFor(profile)
@@ -208,6 +204,7 @@ function Adapter.spawn(player, profile, reserved)
         return nil, "spawn humano desativado"
     end
     if not Core.isSolo() then return nil, "somente single-player" end
+    InputIsolation.remember(player)
     if not player or not profile or type(profile.id) ~= "string" then
         return nil, "jogador/ficha invalido"
     end
@@ -240,6 +237,7 @@ function Adapter.spawn(player, profile, reserved)
         md.SupraNPC_Order = profile.order or "FOLLOW"
         md.SupraNPC_Engine = "IsoPlayer"
         CombatFlags.configure(actor,profile.id)
+        InputIsolation.isolate(actor,profile.id)
         dressFromProfile(actor, profile)
         place(actor, square)
         call(actor, "resetModelNextFrame")
