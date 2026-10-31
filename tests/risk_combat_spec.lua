@@ -66,6 +66,12 @@ time=time+650
 assert(D.update(entry,player,{})==true)
 assert(entry.navStatus=="FLEE" and entry.state.active=="RETREAT")
 assert(walking.moving and walking.started==1)
+-- A living zombie still loaded in the engine must NOT keep the NPC
+-- fleeing forever if it is no longer seen and the memory has expired.
+time=time+5200
+assert(D.update(entry,player,{})==false)
+assert(entry.state.active=="FOLLOW")
+assert(not walking.moving)
 for _,v in ipairs(zombieList) do v.dead=true end
 time=time+2000
 assert(D.update(entry,player,{})==false)
