@@ -20,6 +20,10 @@ assert(Speech.active[1].text:find("indo",1,true) or
 assert(Speech.npcAlert(actor,"HORDE",true)==true)
 assert(Speech.npcAlert(actor,"HORDE")==false) -- cooldown
 assert(#Speech.active[1].queue==1)
+Speech.npcReply(actor,"IDLE",nil,true)
+assert(Speech.active[1].text:find("esperar",1,true) or
+       Speech.active[1].text:find("ficar aqui",1,true))
+assert(#Speech.active[1].queue==0)
 Speech.clear()
 assert(#Speech.active==0)
 print("[SupraNPC] speech_spec: OK")
