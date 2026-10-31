@@ -188,7 +188,11 @@ function D.update(entry)
     local dist=distance(actor,target)
     if not dist then return true end
     entry.navStatus="DEFENDING"
-    if dist<=D.REACH then
+    local currentWeapon=weaponOf(actor)
+    local actualReach=call(currentWeapon,"getMaxRange")
+    if not finite(actualReach) then actualReach=D.REACH end
+    actualReach=math.min(D.REACH,math.max(0.6,actualReach))
+    if dist<=actualReach then
         cancel(entry,"alcance de ataque")
         if now()>=old.nextHit then
             old.nextHit=now()+D.PERIOD_MS
