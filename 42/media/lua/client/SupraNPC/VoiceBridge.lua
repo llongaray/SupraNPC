@@ -71,8 +71,9 @@ function B.update()
     end
     if B.pending then
         local line=read(B.RESPONSE)
-        local kind,id,payload=line and
-            line:match("^(%u+)|(%d+)|(.+)$")
+        -- Lua 5.1 'and' truncates multiple returns: capture match separately.
+        local kind,id,payload
+        if line then kind,id,payload=line:match("^(%u+)|(%d+)|(.+)$") end
         if id and tonumber(id)==B.pending and line~=B.lastResult then
             B.lastResult=line
             local callback=B.callback
