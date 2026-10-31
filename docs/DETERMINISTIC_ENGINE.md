@@ -82,3 +82,15 @@ CI: `.github/workflows/lua-check.yml`. Esses testes cobrem prioridades e limites
 5. Aplicar snapshots em saves somente depois de validar serialização e restauração real.
 
 Não utilizar zumbis disfarçados: o protótipo `addZombiesInOutfit` foi descontinuado após gerar zumbis no teste.
+
+## Anti-stuck sem acionar o motor
+
+`NavMonitor.new(config)` e `NavMonitor.observe(state,x,y,z,tick,hasGoal)` operam sobre números, não personagens Java. O integrador futuro informa posição e tick monotônico. O monitor retorna:
+
+- `TRACKING` ao iniciar observação; `MOVING` se houver avanço físico de pelo menos 0,15 tile;
+- `WAIT` enquanto o progresso estiver dentro da janela configurada;
+- `REPATH` quando ultrapassar `stuckAfterTicks` sem avançar;
+- `BLOCKED` após três tentativas sem progresso;
+- `IDLE` quando não houver destino (limpando a contagem).
+
+O adaptador de navegação **ainda precisa** interpretar `REPATH` e chamar um método de rota comprovado na B42.13.1. O monitor sozinho não executa movimento e não teletransporta NPCs.
