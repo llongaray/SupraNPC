@@ -1,8 +1,10 @@
 # SupraNPC
 
+**Versão atual: 0.1.21-dev — comandos, legenda e atalho PTT configurável (infraestrutura).** O reconhecimento por microfone **ainda não está integrado**: o motor Lua do jogo não oferece speech-to-text. O painel indica `MIC SEM STT` em vez de fingir que está gravando. Enviar um comando por texto faz o NPC responder sem aguardar alertas antigos. [Documentação de comandos](docs/VOICE_COMMANDS.md).
+
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.20-dev — posturas funcionais PASSIVE (foge sem combater), DEFENSIVE (combate primeiro e recua em desvantagem) e AGGRESSIVE (caça zumbis e não foge automaticamente).** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Combate 0.1.20-dev — posturas funcionais PASSIVE (foge sem combater), DEFENSIVE (combate primeiro e recua em desvantagem) e AGGRESSIVE (caça zumbis e não foge automaticamente).** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
