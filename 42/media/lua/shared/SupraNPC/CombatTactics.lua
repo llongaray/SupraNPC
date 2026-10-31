@@ -10,6 +10,19 @@ function T.plan(state,o)
  local standing=o.standing or 0;local down=o.down or 0
  if not good(standing) or not good(down) or
     standing%1~=0 or down%1~=0 then return nil,"invalid_counts" end
+ local stance=o.stance or "DEFENSIVE"
+ if stance=="PASSIVE" then
+    -- Absolute rule: no shove, stomp, swing or pursuit in passive posture.
+    state.groupCombat=false
+    state.escape=o.mustRetreat==true
+    state.last=state.escape and "FLEE" or "RESUME"
+    return state.last,state.escape and "PASSIVE_ESCAPE" or "PASSIVE_CLEAR"
+ end
+ if stance=="AGGRESSIVE" or o.mustRetreat~=true then
+    -- A posture switch or improved circumstances must not inherit an old
+    -- FLEE loop from the previous combat plan.
+    state.escape=false
+ end
  local action,tactic="WATCH","AWARE"
  local nearby=standing+down
  if standing>=3 then state.groupCombat=true end
@@ -42,7 +55,7 @@ function T.plan(state,o)
     elseif good(dist) and dist<=T.SHOVE_RANGE and o.visible then
        action="SHOVE"
     elseif good(dist) and o.melee==true and dist<=1.85 then action="SWING"
-    elseif good(dist) and dist<=5.5 then action="APPROACH"
+    elseif good(dist) and dist<=math.max(5.5,o.engageRange or 5.5) then action="APPROACH"
     else action="WAIT" end
  elseif standing>0 then
     tactic="SUSTAINED_SHOVE"
