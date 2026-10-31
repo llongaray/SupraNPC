@@ -32,11 +32,12 @@ end
 assert(A.choose(actor,target)=="SHOVE")
 assert(A.execute(actor,target,"SHOVE"))
 assert(actor.authorizedAction==true and actor.authorizedMelee==true)
-assert(actor.attacks[1]=="SHOVE" and actor.shove==false)
+assert(actor.attacks[1]=="SHOVE" and actor.shove==true)
+-- Shove stays active until animation consumes the signal.
 target.x=1.6
 assert(A.choose(actor,target)=="SWING")
 assert(A.execute(actor,target,"SWING"))
-assert(actor.attacks[2]=="NORMAL")
+assert(actor.attacks[2]=="NORMAL" and actor.shove==false)
 target.x=1.0;target.down=true
 assert(A.choose(actor,target)=="GROUND")
 assert(A.execute(actor,target,"GROUND"))
@@ -51,4 +52,6 @@ target.blocked=false
 target.kind="IsoPlayer"
 assert(A.execute(actor,target,"GROUND")==false)
 assert(#actor.attacks==3)
+A.release(actor)
+assert(actor.shove==false)
 print("[SupraNPC] native_attack_spec: OK")
