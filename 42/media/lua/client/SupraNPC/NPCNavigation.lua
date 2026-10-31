@@ -229,13 +229,13 @@ function N.attackAccessible(actor,target)
        return true
     end
     while xx~=gx or yy~=gy do
-       if xfirst then
-          if xx~=gx then if not walkStep(xx+(gx>xx and 1 or -1),yy) then return false end
-          elseif not walkStep(xx,yy+(gy>yy and 1 or -1)) then return false end end
-       else
-          if yy~=gy then if not walkStep(xx,yy+(gy>yy and 1 or -1)) then return false end
-          elseif not walkStep(xx+(gx>xx and 1 or -1),yy) then return false end end
-       end
+      local nx,ny=xx,yy
+      if (xfirst and xx~=gx) or yy==gy then
+        nx=xx+(gx>xx and 1 or -1)
+      else
+        ny=yy+(gy>yy and 1 or -1)
+      end
+      if not walkStep(nx,ny) then return false end
     end
     return true
  end
