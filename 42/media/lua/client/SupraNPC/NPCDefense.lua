@@ -8,6 +8,7 @@ local Walking = require("SupraNPC/NPCWalking")
 local Tactics = require("SupraNPC/CombatTactics")
 local Perception = require("SupraNPC/NPCPerception")
 local Speech = require("SupraNPC/NPCSpeech")
+local NativeAttack = require("SupraNPC/NPCNativeAttack")
 local D = { RADIUS=4.0, REACH=1.45, PERIOD_MS=1050, MAX_SQUARES=81,
     MAX_OBJECTS=280, MAX_CHASE=4.0, STATES={} }
 local function call(o,k,...)
@@ -197,6 +198,8 @@ function D.update(entry,player,team)
  local danger=Perception.risk(obs,health)
  local visible=obs.seen or 0
  local near=(obs.nearStanding or 0)+(obs.nearDown or 0)
+ local stance=entry.stance or "DEFENSIVE"
+ local engageRange=stance=="AGGRESSIVE" and 9.0 or (stance=="PASSIVE" and 2.2 or 5.0)
  -- Threat memory prevents FOLLOW resuming while escaping a group
  -- simply because the NPC turned away from the vision cone.
  local memory=false
@@ -213,9 +216,11 @@ function D.update(entry,player,team)
     danger.retreat=true
     if not obs.firstVisible then obs.firstVisible=rememberedThreat end
  end
- local engage=near>0 or (obs.alertDistance and obs.alertDistance<=8)
-             or (danger.retreat and ((obs.alertDistance and
-                 obs.alertDistance<=10) or memory))
+ local engage=(obs.nearestDistance and obs.nearestDistance<=engageRange)
+       or (obs.nearestDownDistance and obs.nearestDownDistance<=engageRange)
+       or (obs.alertDistance and obs.alertDistance<=engageRange)
+       or (danger.retreat and ((obs.alertDistance and
+           obs.alertDistance<=10) or memory))
  if visible>0 and not old then
     Speech.npcAlert(actor,"SPOTTED")
  end
@@ -266,13 +271,14 @@ function D.update(entry,player,team)
     standing=standing,down=down,alertStanding=obs.standing,
     alertDistance=obs.alertDistance,nearestDistance=obs.nearestDistance,
     nearestDownDistance=obs.nearestDownDistance,visible=obs.visible,
-    downVisible=obs.downVisible,mustRetreat=danger.retreat
+    downVisible=obs.downVisible,mustRetreat=danger.retreat,
+     melee=obs.npcWeapon.category=="MELEE",engageRange=engageRange
  })
  if not action then return true end
  -- Keep the existing TimedAction alive during flee/approach/pin.
  -- Cancelling it on each tactical update was the cause of standing still.
  local target=obs.nearest or obs.firstVisible
- if action=="SHOVE" or action=="STOMP" or action=="BACKSTEP" then
+ if action=="SHOVE" or action=="SWING" or action=="STOMP" or action=="BACKSTEP" then
     cancel(entry,"troca de fase combate")
  elseif action=="FLEE" and old.lastAction~="FLEE" then
     cancel(entry,"troca de fase combate")
@@ -282,31 +288,41 @@ function D.update(entry,player,team)
  old.lastAction=action
  entry.navStatus=action
  entry.navError=nil
- if action=="SHOVE" then
-    local ok,reason=D.shove(actor,obs.nearest)
-    old.nextAction=nowMs+650
-    if ok then
-       old.shoveTarget=obs.nearest
+ if action=="SHOVE" or action=="SWING" or action=="STOMP" then
+    local hitTarget=action=="STOMP" and obs.nearestDown or obs.nearest
+    local valid=hitTarget and (action~="STOMP" or
+       (standing==0 and fallen(hitTarget)))
+    local ok,reason=false,"no valid target"
+    if valid then
+       if actor.DoAttack then
+          -- Native Build 42 selects animations and collision; never mix
+          -- native damage with a manual Hit() for the same attack.
+          ok,reason=NativeAttack.execute(actor,hitTarget,
+              action=="STOMP" and "GROUND" or action,player,team)
+       elseif action=="SHOVE" then
+          -- Legacy tests only, where mock actor has no DoAttack.
+          ok,reason=D.shove(actor,hitTarget)
+       elseif action=="STOMP" then
+          ok,reason=D.hit(actor,hitTarget)
+       else reason="native attack unavailable" end
+    end
+    old.nextAction=nowMs+(action=="SHOVE" and 550 or
+        action=="SWING" and 650 or D.PERIOD_MS)
+    if action=="SHOVE" and ok then
+       old.shoveTarget=hitTarget
        old.shoveCheck=nowMs+600
        if (old.planner.cycles or 0)<=1 then
           Speech.npcAlert(actor,"COMBAT")
        end
-    else
-       old.planner.failedShoves=(old.planner.failedShoves or 0)+1
+    elseif not ok and reason~="attack animation running" then
+       if action=="SHOVE" then
+          old.planner.failedShoves=(old.planner.failedShoves or 0)+1
+       end
        if reason~=old.lastError then
-          Core.log("TACTIC "..id.." shove denied: "..tostring(reason))
+          Core.log("TACTIC "..id.." "..action.." denied: "..tostring(reason))
           old.lastError=reason
        end
     end
- elseif action=="STOMP" then
-    if standing==0 and fallen(obs.nearestDown) then
-       local ok,reason=D.hit(actor,obs.nearestDown)
-       if not ok and reason~=old.lastError then
-          Core.log("TACTIC "..id.." stomp: "..tostring(reason))
-          old.lastError=reason
-       end
-    end
-    old.nextAction=nowMs+D.PERIOD_MS
  elseif action=="PIN" then
     local z=obs.nearestDown
     local sq=z and Walking.pickAround and Walking.pickAround(
@@ -341,7 +357,7 @@ function D.update(entry,player,team)
  if old.lastLogged~=action or old.lastTactic~=tactic then
     Core.log("TACTIC "..id.." "..tactic.."/"..action..
       " near="..standing.." visible="..(obs.standing or 0)..
-      " down="..down.." weapon="..obs.npcWeapon.category..
+      " down="..down.." stance="..stance.." weapon="..obs.npcWeapon.category..
       " allies="..(obs.allies or 0).." risk="..
       string.format("%.2f",danger.severity))
     old.lastLogged,old.lastTactic=action,tactic
