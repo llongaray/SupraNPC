@@ -33,6 +33,14 @@ M.reset()
 MapItem=nil
 assert(not M.update(player))
 assert(M.get(player).base==nil)
+-- Raw MapItem WorldMapSymbols is not an exposed Lua symbols API.
+-- Regression: do not index getSymbolCount on an unsupported object.
+MapItem={getSingleton=function() return {
+   getSymbols=function() return "WorldMapSymbols Java object (opaque)" end
+} end}
+assert(M.update(player)==false)
+assert(M.get(player).base==nil)
+MapItem=nil
 -- B42/UIWorldMap wrapper may be the only way to obtain world coordinates.
 ISWorldMap={instance={getAPI=function() return {
  getSymbolsAPI=function() return {
