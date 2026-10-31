@@ -81,5 +81,14 @@ assert(D.update(entry,player,{})==true)
 assert(entry.state.active=="SELF_DEFEND")
 assert(entry.navStatus=="APPROACH")
 D.clear()
+-- Stance must affect the interception distance, not only persistence.
+zombieList={z(7,0)}
+entry.stance="DEFENSIVE"
+assert(D.update(entry,player,{})==false)
+entry.stance="AGGRESSIVE"
+time=time+2000
+assert(D.update(entry,player,{})==true)
+assert(entry.navStatus=="APPROACH")
+D.clear()
 Speech.clear()
 print("[SupraNPC] risk_combat_spec: OK")
