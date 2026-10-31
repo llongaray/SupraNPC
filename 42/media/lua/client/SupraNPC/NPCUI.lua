@@ -10,6 +10,7 @@ pcall(require, "ISUI/ISUI3DModel")
 if not ISNewHealthPanel then pcall(require, "ISHealthPanel") end
 local Core = require("SupraNPC/Constants")
 local Adapter = require("SupraNPC/SpawnAdapter")
+local Recovery = require("SupraNPC/NPCRecovery")
 local Health = require("SupraNPC/Health")
 local Controller = require("SupraNPC/NPCController")
 local Speech = require("SupraNPC/NPCSpeech")
@@ -193,6 +194,18 @@ end
 function HUD.openMenu(id)
     if not profileById(id) or not ISContextMenu then return end
     local m = ISContextMenu.get(0, mouseX(), mouseY())
+    if not Adapter.get(id) then
+        m:addOption("Recuperar NPC desaparecido (mesmo ID)", nil, function()
+            local player=getSpecificPlayer and getSpecificPlayer(0)
+            local data=player and player.getModData and
+                player:getModData().SupraNPC
+            local ok,reason=Recovery.manual(player,data,id)
+            HUD.feedback={text=ok and "NPC recuperado" or
+                ("Recuperacao: "..tostring(reason))}
+            HUD.feedbackTicks=0
+        end)
+        -- A ficha continua no save; nao remover ou resetar por estar offline.
+    end
     m:addOption("Analisar vida / saude", nil, function() HUD.showHealth(id) end)
     local orderOption = m:addOption("Ordens", nil, nil)
     local orders = ISContextMenu:getNew(m)
