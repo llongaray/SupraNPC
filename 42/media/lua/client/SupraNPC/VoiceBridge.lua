@@ -37,6 +37,8 @@ function provider:start(callback)
     end
     B.seq=B.seq+1
     B.pending=B.seq
+    -- Ignore a stale transcript from a previous game session.
+    B.lastResult=read(B.RESPONSE) or ""
     B.callback=callback
     if not write(B.COMMAND,"START|"..B.pending) then
         B.pending=nil;B.callback=nil
