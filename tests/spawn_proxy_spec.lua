@@ -73,7 +73,10 @@ IsoPlayer.new = function(cellValue, desc, x,y,z)
     local a = {desc=desc,x=x,y=y,z=z,md={}}
     function a:getBodyDamage() return {} end
     function a:getModData() return self.md end
-    function a:setNPC(value) self.npc=value end
+    function a:setNpc(value) self.npc=value end
+    function a:setGodMod(value) self.god=value end
+    function a:setInvulnerable(value) self.invulnerable=value end
+    function a:setZombiesDontAttack(value) self.ignored=value end
     function a:removeFromSquare() end
     function a:teleportTo(ax,ay,az) self.x,self.y,self.z=ax,ay,az end
     function a:setX(v) self.x=v end
@@ -107,6 +110,7 @@ local reserved={}
 local npc1,err1,reused1=Adapter.spawn(player,roster.profiles[1],reserved)
 assert(npc1 and err1==nil and reused1==false)
 assert(npc1.npc==true and npc1.md.SupraNPC_Engine=="IsoPlayer")
+assert(npc1.god==false and npc1.invulnerable==false and npc1.ignored==false)
 assert(npc1.md.SupraNPC_ID == roster.profiles[1].id)
 assert(npc1.desc.firstName=="Ana")
 assert(localPlayer==player and cameraPlayer==player)
