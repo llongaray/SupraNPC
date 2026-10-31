@@ -38,6 +38,8 @@ walking.pickRetreat=function() return {} end
 walking.pickAround=function() return {} end
 walking.update=function() end
 package.loaded["SupraNPC/NPCWalking"]=walking
+package.loaded["SupraNPC/NPCNavigation"]={attackAccessible=function() return true end,next=function() return {},"waypoint" end,clear=function() end}
+
 local Orders=require("SupraNPC/Orders")
 local D=require("SupraNPC/NPCDefense")
 local P=require("SupraNPC/NPCPerception")
