@@ -237,6 +237,7 @@ function D.update(entry,player,team)
  end
  local health=call(call(actor,"getBodyDamage"),"getOverallBodyHealth")
  local danger=Perception.risk(obs,health)
+ local confirmedRetreat=danger.retreat -- before historical-threat override
  local visible=obs.seen or 0
  local near=(obs.nearStanding or 0)+(obs.nearDown or 0)
  local stance=entry.stance or "DEFENSIVE"
@@ -293,7 +294,7 @@ function D.update(entry,player,team)
  if danger.retreat then
     -- Refresh the timestamp ONLY when a threat is actually perceived.
     -- A frame driven purely by memory must not renew itself indefinitely.
-    if visible>0 then
+    if visible>0 and confirmedRetreat then
        old.lastThreatSeenAt=now()
        if type(obs.visibleTargets)=="table" and #obs.visibleTargets>0 then
           old.retreatThreats=obs.visibleTargets
