@@ -92,5 +92,23 @@ time=time+2000
 assert(D.update(entry,player,{})==true)
 assert(entry.navStatus=="APPROACH")
 D.clear()
+-- Under lethal threat, return toward a player-marked base, not random wandering.
+local Territory=require("SupraNPC/Territory")
+local home=Territory.import({
+  {text="NPC:BASE:A",x=20,y=20,z=0},
+  {text="NPC:BASE:B",x=25,y=24,z=0}
+})
+player.getModData=function() return {SupraNPC_Territory=home} end
+npc.getPrimaryHandItem=function() return nil end
+player.getPrimaryHandItem=function() return nil end
+walking.moving=false
+zombieList={z(4,0),z(5,0),z(6,0)}
+entry.stance="DEFENSIVE"
+time=time+2000
+assert(D.update(entry,player,{})==true)
+assert(entry.state.active=="RETREAT")
+assert(entry.navStatus=="FLEE_BASE")
+assert(walking.moving)
+D.clear()
 Speech.clear()
 print("[SupraNPC] risk_combat_spec: OK")
