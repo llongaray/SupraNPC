@@ -2,6 +2,7 @@
 local Core = require("SupraNPC/Constants")
 local Roster = require("SupraNPC/Roster")
 local TeamSetup = require("SupraNPC/TeamSetup")
+local TeamFlow = require("SupraNPC/TeamFlow")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Follow = require("SupraNPC/Follow")
 
@@ -73,6 +74,7 @@ end
 local function onGameBoot()
     Core.log("Versao " .. Core.VERSION .. " carregada; alvo B42.13.1.")
     TeamSetup.install()
+    TeamFlow.install()
 end
 
 if Events then
@@ -80,6 +82,7 @@ if Events then
     -- Algumas builds inicializam os painéis do menu depois de OnGameBoot.
     if Events.OnMainMenuEnter then Events.OnMainMenuEnter.Add(function()
         TeamSetup.install()
+        TeamFlow.install()
     end) end
     if Events.OnNewGame then Events.OnNewGame.Add(onNewGame) end
     if Events.OnGameStart then Events.OnGameStart.Add(onGameStart) end
