@@ -1,4 +1,14 @@
 # Changelog — SupraNPC
+## 0.1.27-dev — 2026-10-31
+
+- Corrigida a regressao de controle simultaneo: preserva explicitamente player-0 como instancia principal e local `IsoPlayer`, com camera vinculada ao jogador. Para o NPC, ativa `setIgnoreInputsForDirection`, `setIgnoreAimingInput`, `setIgnoreContextKey` e remove joypad; nao usa `setIgnoreMovement` porque isso bloquearia seus movimentos automaticos.
+- `NPCInputIsolation` salva a referencia original do jogador antes de criar `IsoPlayer.new`. `SpawnAdapter` aplica isolamento ao spawn e reanexo; `Boot` nao confunde NPC com o player mesmo se `getSpecificPlayer(0)` for modificado por outro subsistema.
+- Adiciona STT PT-BR local: `VoiceBridge.lua` comunica-se com companion por arquivos do cache Lua permitido pela engine. `companion/supranpc_voice.py` capta audio no dispositivo de entrada padrão do Windows com `sounddevice`, transcreve localmente com `faster-whisper` e entrega o resultado ao mesmo parser dos comandos digitados.
+- GitHub Actions Windows gera artefato portatil `SupraNPCVoice-Windows-PTBR` com modelo `base` incluso. **Necessario iniciar `SupraNPCVoice.exe` separadamente; Lua vanilla nao tem acesso ao microfone nem pode iniciar executavel arbitrario.**
+- HUD mostra `STT PENDENTE` sem companion e `READY` quando o heartbeat local e detectado. Botao Mouse Btn 3 continua configuravel pelo jogador. Nao ha envio de fala para API online.
+- Testes Lua cobrem isolamento do player-0, handshake, resposta PTBR e prevencao de transcricoes antigas. Build Windows concluiu; **requer validacao de audio, estabilidade e independencia dos personagens no PZ B42.13.1 real.**
+- Instalar/usar em [docs/VOICE_BRIDGE.md](docs/VOICE_BRIDGE.md); release nao corrige necessariamente os bugs de dano ou combate nativo que tambem seguem experimentais.
+
 ## 0.1.26-dev — 2026-10-31
 
 - Corrige percepcao visual de NPC IsoPlayer: `CanSee()` pode ser falso sem cache de visao local; utiliza `LosUtil.lineClear` em tiles carregados e rejeita paredes/portas fechadas, preservando o cone visual e o alcance da postura agressiva.
