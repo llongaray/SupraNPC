@@ -209,10 +209,10 @@ function HUD.openMenu(id)
     local stanceOption = m:addOption("Postura", nil, nil)
     local stances = ISContextMenu:getNew(m)
     m:addSubMenu(stanceOption, stances)
-    stances:addOption("Passiva", nil, function() dispatch(id, "STANCE", "PASSIVE") end)
-    stances:addOption("Defensiva", nil, function() dispatch(id, "STANCE", "DEFENSIVE") end)
-    stances:addOption("Agressiva", nil, function() dispatch(id, "STANCE", "AGGRESSIVE") end)
-    -- A postura agora influencia o raio de interceptacao (2.2/5/9 tiles).
+    stances:addOption("Passiva - nao luta; foge", nil, function() dispatch(id, "STANCE", "PASSIVE") end)
+    stances:addOption("Defensiva - luta primeiro; recua se necessario", nil, function() dispatch(id, "STANCE", "DEFENSIVE") end)
+    stances:addOption("Agressiva - caçar e eliminar zumbis", nil, function() dispatch(id, "STANCE", "AGGRESSIVE") end)
+    -- As posturas mudam a decisao: fugir, lutar com retirada ou caca prioritaria.
 end
 
 function HUD.sendVoice(utterance)
