@@ -50,3 +50,22 @@ local emptyBody = {getBodyDamage = function()
 end}
 assert(Health.inspect(emptyBody).health == nil) -- Nunca inventar 100% de vida.
 print("[SupraNPC] health_spec: OK")
+
+
+-- B42: os getters antigos de Stats foram substituidos pelo enum CharacterStat.
+CharacterStat={HUNGER="H",THIRST="T",ENDURANCE="E",PAIN="P"}
+local values={H=0.25,T=0.75,E=0.63,P=18}
+local b42={get=function(_,key) return values[key] end}
+local npc42={
+    getBodyDamage=function() return {
+        getHealth=function() return 97 end,
+        getBodyParts=function() return {size=function() return 0 end} end
+    } end,
+    getStats=function() return b42 end
+}
+local measured=Health.inspect(npc42)
+assert(measured.available and measured.health==97)
+assert(measured.hunger==0.25 and measured.thirst==0.75)
+assert(measured.endurance==0.63 and measured.pain==18)
+assert(measured.sources.hunger and measured.sources.thirst)
+print("[SupraNPC] health B42 CharacterStat: OK")
