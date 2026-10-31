@@ -100,8 +100,12 @@ function Wardrobe.capture(desc)
         local slot = call(worn, "get", i)
         local item = call(slot, "getItem") or call(worn, "getItemByIndex", i)
         local fullType = call(item, "getFullType")
+        local loc = call(slot, "getLocation")
+        if loc ~= nil then loc = tostring(loc) end
         if itemType(fullType) then
-            items[#items + 1] = { type = fullType, visual = captureVisual(item) }
+            items[#items + 1] = {
+                type = fullType, location = loc, visual = captureVisual(item)
+            }
         end
     end
     return items
@@ -111,7 +115,10 @@ function Wardrobe.validate(saved)
     if type(saved) ~= "table" or #saved > 80 then return false end
     for _, record in ipairs(saved) do
         if type(record) ~= "table" or not itemType(record.type) or
-           (record.visual ~= nil and not validVisual(record.visual)) then return false end
+           (record.visual ~= nil and not validVisual(record.visual)) or
+           (record.location ~= nil and (type(record.location) ~= "string"
+             or #record.location > 120 or not
+             record.location:match("^[%w_:%-]+$"))) then return false end
     end
     return true
 end
@@ -132,6 +139,44 @@ local function locationOf(item)
     return raw  -- compatibilidade com implementacoes de B41
 end
 
+-- O vanilla chama SurvivorDesc:setWornItem ANTES da criacao do player.
+-- Isto evita depender da sincronizacao de IsoPlayer:setWornItem apos o spawn.
+local function resolveLocation(raw)
+    if not raw then return nil end
+    if ItemBodyLocation and ItemBodyLocation.get and
+       ResourceLocation and ResourceLocation.of then
+        local ok, result = pcall(function()
+            return ItemBodyLocation.get(ResourceLocation.of(tostring(raw)))
+        end)
+        if ok and result then return result end
+    end
+    return raw
+end
+
+function Wardrobe.dressDescriptor(desc, saved)
+    if not desc or not Wardrobe.validate(saved) then
+        return 0, "descriptor ou roupas invalidas"
+    end
+    if type(instanceItem) ~= "function" then
+        return 0, "API instanceItem indisponivel"
+    end
+    local dressed, failed = 0, 0
+    for _, record in ipairs(saved) do
+        local ok, item = pcall(instanceItem,record.type)
+        if ok and item then
+            applyVisual(item,record.visual)
+            local slot = resolveLocation(record.location) or locationOf(item)
+            if slot then
+                local good = pcall(function()
+                    desc:setWornItem(slot,item)
+                end)
+                if good then dressed = dressed + 1 else failed = failed + 1 end
+            else failed = failed + 1 end
+        else failed = failed + 1 end
+    end
+    return dressed, failed
+end
+
 function Wardrobe.equip(actor, saved)
     if not actor then return 0, 0, "NPC ausente" end
     if not Wardrobe.validate(saved) then return 0, 0, "roupas invalidas" end
@@ -149,7 +194,7 @@ function Wardrobe.equip(actor, saved)
         local okCreate, item = pcall(InventoryItemFactory.CreateItem, record.type)
         if okCreate and item then
             applyVisual(item, record.visual)
-            local location = locationOf(item)
+            local location = resolveLocation(record.location) or locationOf(item)
             if location then
                 local okAdd, addError = pcall(function() inventory:AddItem(item) end)
                 if okAdd then
