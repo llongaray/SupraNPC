@@ -1,4 +1,15 @@
 # Changelog — SupraNPC
+## 0.1.26-dev — 2026-10-31
+
+- Corrige percepcao visual de NPC IsoPlayer: `CanSee()` pode ser falso sem cache de visao local; utiliza `LosUtil.lineClear` em tiles carregados e rejeita paredes/portas fechadas, preservando o cone visual e o alcance da postura agressiva.
+- Corrige empurrao: `NPCNativeAttack.execute` nao limpa `setDoShove(false)` imediatamente apos requisitar `DoAttack`; so troca em golpes normais ou ao sair do combate. Habilita tambem autorizacoes B42 `setAuthorizeShoveStomp` e `setAuthorizeMeleeAction` se expostas.
+- Corrige inicializacao do NPC: a chamada anterior a `setNPC` usava capitalizacao incorreta; a API `setNpc(true)` passa a ser chamada. Apenas para entidades com ModData/SupraNPC_ID proprio, desabilita `GodMod`, invulnerabilidade, invisibilidade/ghost e `ZombiesDontAttack` na criacao e reconexao. O jogador principal nao e alterado.
+- Log `NPC_FLAGS` registra o estado nativo para confirmar o resultado real no jogo. **Nao aplica dano artificial**: ataques dos zumbis continuam sob controle do motor; necessario validar que o BodyDamage se modifica apos mordidas.
+- HUD passa a exibir a postura atual (`PASSIVE`, `DEFENSIVE` ou `AGGRESSIVE`) para nao confundir ordem de seguir com comportamento ofensivo.
+- Testes novos: linha de visao entre 7 tiles com/sem parede, protecao do player-0 contra mudanca de flags, spawn `setNpc` e retencao do sinal de empurrao.
+- **Pendente**: captura de microfone e speech-to-text PT-BR. O mod nao testa a entrada de audio do Windows; mostra `STT PENDENTE`. O trabalho de integrar o motor de transcricao continua separado.
+- **Experimental**: aprovacao em testes Lua nao certifica ataques ou ferimentos nativos na Build 42.13.1. Testar em save descartavel e enviar `console.txt`.
+
 ## 0.1.25-dev — 2026-10-31
 
 - Corrigido intervalo excessivo entre empurroes/ataques no modo agressivo, observado nas capturas: NPC e mordido enquanto parece esperar para reagir.
