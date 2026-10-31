@@ -1,0 +1,38 @@
+name: Build portable PT-BR voice bridge (Windows)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "companion/**"
+      - ".github/workflows/windows-voice.yml"
+jobs:
+  windows-voice:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Whisper and packager
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r companion/requirements.txt pyinstaller huggingface_hub
+      - name: Bundle a multilingual base model for offline PT-BR
+        shell: pwsh
+        run: |
+          python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='Systran/faster-whisper-base', local_dir='voice-model-base')"
+      - name: Build standalone Windows program
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onedir --console --name SupraNPCVoice --collect-all faster_whisper --collect-all ctranslate2 --collect-all sounddevice --collect-all av companion/supranpc_voice.py
+          New-Item -ItemType Directory -Force dist/SupraNPCVoice/models/base | Out-Null
+          Copy-Item -Path voice-model-base/* -Destination dist/SupraNPCVoice/models/base/ -Recurse -Force
+          Copy-Item docs/VOICE_BRIDGE.md dist/SupraNPCVoice/README_VOZ.txt -Force
+      - name: Upload no-install portable Windows bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: SupraNPCVoice-Windows-PTBR
+          path: dist/SupraNPCVoice/**
+          if-no-files-found: error
+          retention-days: 30
