@@ -10,6 +10,8 @@ local Perception = require("SupraNPC/NPCPerception")
 local Speech = require("SupraNPC/NPCSpeech")
 local NativeAttack = require("SupraNPC/NPCNativeAttack")
 local Navigation = require("SupraNPC/NPCNavigation")
+local Territory = require("SupraNPC/Territory")
+local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 local D = { RADIUS=4.0, REACH=1.45, PERIOD_MS=1050, MAX_SQUARES=81,
     MAX_OBJECTS=280, MAX_CHASE=4.0, STATES={}, ignored={} }
 local function call(o,k,...)
@@ -205,6 +207,7 @@ function D.update(entry,player,team)
     return false
  end
  local obs=Perception.observe(actor,player,team)
+ entry.lastObservation=obs
  local ignored=D.ignored[id] or {}
  if obs.seen>0 and type(obs.visibleTargets)=="table" then
     local unblocked=nil
@@ -254,6 +257,7 @@ function D.update(entry,player,team)
     danger.retreat=true
     if not obs.firstVisible then obs.firstVisible=rememberedThreat end
  end
+ entry.retreating=danger.retreat
  local engage=(obs.nearestDistance and obs.nearestDistance<=engageRange)
        or (obs.nearestDownDistance and obs.nearestDownDistance<=engageRange)
        or (obs.alertDistance and obs.alertDistance<=engageRange)
@@ -263,6 +267,7 @@ function D.update(entry,player,team)
     Speech.npcAlert(actor,"SPOTTED")
  end
  if not engage then
+    entry.retreating=false
     if old then
        cancel(entry,"ameaça encerrada")
        Orders.evaluate(entry.state,{})
@@ -379,7 +384,29 @@ function D.update(entry,player,team)
  elseif action=="FLEE" then
     local dangerTarget=obs.nearest or obs.nearestDown or obs.firstVisible
     if not Walking.active(id) then
-       local moved=moveAway(entry,dangerTarget,4,"FLEE")
+       local moved=false
+       local knowledge=MapKnowledge.get(player)
+       local home=Territory.basePoint(knowledge)
+       -- Base designation does not guarantee a zombie-free location.
+       if home and not Territory.inside(knowledge,
+           actor:getX(),actor:getY(),actor:getZ()) then
+           local sq,why=Navigation.next(actor,home.x,home.y,home.z,
+               id,Walking.free,2.0,true,true)
+           if sq then
+               moved=moveTo(entry,sq,"RETURN_BASE")
+               if moved then
+                  entry.navStatus="FLEE_BASE"
+                  if not old.announcedBase then
+                      Speech.npcAlert(actor,"BASE")
+                      old.announcedBase=true
+                  end
+               end
+           elseif why~="already near" and old.lastBaseError~=why then
+               Core.log("TACTIC "..id.." base path: "..tostring(why))
+               old.lastBaseError=why
+           end
+       end
+       if not moved then moved=moveAway(entry,dangerTarget,4,"FLEE") end
        if not moved and old.lastError~="flee blocked" then
           old.lastError="flee blocked"
           Core.log("TACTIC "..id.." fleeing blocked: no walkable retreat tile")
