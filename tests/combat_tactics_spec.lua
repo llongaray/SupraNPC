@@ -43,4 +43,29 @@ s=T.new()
 assert(decide(s,0,0,false,nil,nil,{alertStanding=1,alertDistance=7})=="APPROACH")
 assert(decide(s,0,0,false,nil,nil,{alertStanding=1,alertDistance=11})=="WATCH")
 assert(T.plan(s,{standing=-1,down=0})==nil)
+-- Posture priority invariants: passive must never attack a zombie.
+s=T.new()
+for _,scenario in ipairs({
+ {standing=1,nearestDistance=0.7,mustRetreat=true},
+ {standing=4,nearestDistance=0.5,mustRetreat=true},
+ {standing=0,down=1,nearestDownDistance=0.6,mustRetreat=true}
+}) do
+ scenario.stance="PASSIVE"
+ scenario.down=scenario.down or 0
+ assert(T.plan(s,scenario)=="FLEE")
+end
+assert(s.cycles==0 and s.last=="FLEE")
+-- Switch to AGGRESSIVE clears the old retreat and attacks close enemies.
+local attack=T.plan(s,{stance="AGGRESSIVE",standing=1,down=0,
+    nearestDistance=0.8,visible=true,engageRange=12,mustRetreat=false})
+assert(attack=="SHOVE" and not s.escape)
+-- Aggressive never freezes just outside the old group-intercept radius.
+s=T.new()
+assert(T.plan(s,{stance="AGGRESSIVE",standing=3,down=0,
+    nearestDistance=5.9,visible=true,engageRange=12,
+    mustRetreat=false})=="APPROACH")
+s=T.new()
+assert(T.plan(s,{stance="AGGRESSIVE",standing=0,down=0,
+    alertStanding=0,alertDown=1,alertDistance=9,
+    engageRange=12,mustRetreat=false})=="APPROACH")
 print("[SupraNPC] combat_tactics_spec: OK")
