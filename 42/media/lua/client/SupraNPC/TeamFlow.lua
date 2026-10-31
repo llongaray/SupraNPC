@@ -215,24 +215,39 @@ local function finishNPCs(creation, original, button, x, y)
         Core.log("Impedindo carregamento: " .. Flow.error)
         return true
     end
-    -- Restaurar a profissao e OS TRACOS do jogador antes do OnInitWorld.
-    -- Vanilla le a lista de traits da tela, nao do descriptor de NPC.
-    restorePlayer()
-    Flow.session = nil
-    local originalInitPlayer = creation.initPlayer
-    -- Os nomes/voz originais ja foram aplicados pelo NEXT do jogador.
-    -- Nao substituir pelo nome/voz do ultimo NPC.
-    creation.initPlayer = function() end
-    local ok, err = pcall(original, creation, button, x, y)
-    creation.initPlayer = originalInitPlayer
-    if not ok then
-        Core.log("Falha ao iniciar partida: " .. tostring(err))
-        Flow.error = tostring(err)
-        -- O jogador pode tentar novamente, sem alterar seu descriptor.
+    -- O metodo vanilla initPlayer() NAO deve ser substituido por uma funcao vazia:
+    -- o motor precisa da transicao normal para nome/voz quando carrega o mundo.
+    local restored, restoreError = pcall(restorePlayer)
+    if not restored then
+        Flow.error = "Falha ao restaurar player (ver console.txt)"
+        Core.log("ABORTANDO entrada no mundo: " .. tostring(restoreError))
         return true
     end
-    Core.log("Todas as fichas concluidas. Iniciando partida com " ..
-        Core.pendingRoster.count .. " NPC(s) planejados.")
+    local main = screen()
+    local session = Flow.session
+    if not main or not session or main.desc ~= session.playerDescriptor or
+        (session.playerAvatar and main.avatar ~= session.playerAvatar) then
+        Flow.error = "Estado inconsistente do jogador; entrada bloqueada"
+        Core.log("ABORTANDO: descriptor/avatar do jogador divergente no final")
+        return true
+    end
+    if not creation.initPlayer then
+        Flow.error = "Metodo vanilla initPlayer ausente"
+        Core.log("ABORTANDO: initPlayer nao encontrado na tela do jogador")
+        return true
+    end
+    Flow.session = nil
+    Flow.error = nil
+    Core.log("PRE-LOAD: player restaurado, metodo initPlayer VANILLA preservado; " ..
+        tostring(Core.pendingRoster.count) .. " fichas de NPC prontas.")
+    local ok, err = pcall(original, creation, button, x, y)
+    if not ok then
+        Core.log("ERRO LUA ao iniciar partida: " .. tostring(err))
+        Flow.session = session
+        Flow.error = "Falha no inicio do jogo: ver console.txt"
+        return true
+    end
+    Core.log("LOADING: callback vanilla NEXT executado")
     return true
 end
 
