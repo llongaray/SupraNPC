@@ -1,0 +1,6 @@
+name=SupraNPC
+id=SupraNPC
+author=Leonardo Longaray dos Santos
+modversion=0.1.0-dev
+description=Companheiros NPC para Project Zomboid Build 42. Prototipo experimental em desenvolvimento.
+versionMin=42.13.0
