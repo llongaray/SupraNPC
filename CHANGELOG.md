@@ -1,4 +1,14 @@
 # Changelog — SupraNPC
+## 0.1.17-dev — 2026-10-31
+
+- Follow reduzido para 1,3 tile; movimento agora usa waypoints adjacentes acessíveis em grade (16 tiles/640 nos) e recalcula quando player muda de posicao, sem teleporte.
+- Novo `NPCNavigation.lua`: detecta portas, janelas, paredes e rotas bloqueadas; tenta abrir localmente portas destrancadas e janelas fechadas usando ToggleDoor/ToggleWindow, apenas uma vez; replaneja/evita por 14s ao falhar.
+- Janelas abertas **não** habilitam travessia ou teleporte. Escalada, garagem e portas especiais ainda pendentes.
+- Combate e ataque nativo checam acessibilidade por tile, impedindo contato atraves de janela/porta fechada.
+- Alvos zumbis sem acesso sao ignorados temporariamente para evitar loop infinito de empurrões ou NPC parado.
+- Testes de navegação `navigation_obstacle_spec.lua` e ajustes de seguimento/combate integrados ao CI.
+- **Pendente in-game:** conferir abre de fato portas e janelas na B42.13.1, caminho alternativo com casa real, distância e tempo de resposta.
+
 ## 0.1.15-dev — 2026-10-31
 
 - **Visão:** `NPCPerception.lua` detecta zumbis à frente em cone de 130° até 12 tiles e consciência próxima; usa visibilidade de `CanSee` e lista de zumbis carregados, com fallback por squares. Avisos e interceptação de alvos até ~8 tiles.
