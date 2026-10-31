@@ -97,6 +97,15 @@ local function weaponOf(actor)
             return bare
         end
     end
+    -- A arma virtual da engine (Base.BareHands) permite defesa desarmada.
+    -- Apenas instanciar o item oficial; nao adicionar arma falsa ao inventario.
+    if InventoryItemFactory and InventoryItemFactory.CreateItem then
+        local ok,item=pcall(InventoryItemFactory.CreateItem,"Base.BareHands")
+        if ok and item and instanceof then
+            local yes,valid=pcall(instanceof,item,"HandWeapon")
+            if yes and valid then return item end
+        end
+    end
     return nil
 end
 function D.hit(actor,target)
@@ -109,6 +118,10 @@ function D.hit(actor,target)
     end
     local weapon=weaponOf(actor)
     if not weapon then return false,"sem HandWeapon corpo a corpo" end
+    local weaponRange=call(weapon,"getMaxRange")
+    if finite(weaponRange) and d>math.min(D.REACH,weaponRange) then
+        return false,"fora do alcance desta arma"
+    end
     local min=call(weapon,"getMinDamage")
     local max=call(weapon,"getMaxDamage")
     if not finite(min) or not finite(max) or max<=0 then
