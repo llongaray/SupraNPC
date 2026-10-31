@@ -69,30 +69,38 @@ function Wardrobe.equip(actor, saved)
     end
     local inventory = call(actor, "getInventory")
     if not inventory then return 0, #saved, "inventario indisponivel" end
-    local worn, failed = 0, 0
+    local worn, failed, firstError = 0, 0, nil
+    local function failure(itemName, reason)
+        failed = failed + 1
+        if not firstError then firstError = tostring(itemName) .. ": " .. tostring(reason) end
+    end
     for _, record in ipairs(saved) do
         local okCreate, item = pcall(InventoryItemFactory.CreateItem, record.type)
         if okCreate and item then
             local location = locationOf(item)
             if location then
-                local okAdd = pcall(function() inventory:AddItem(item) end)
+                local okAdd, addError = pcall(function() inventory:AddItem(item) end)
                 if okAdd then
-                    local okWear = pcall(function()
+                    local okWear, wearError = pcall(function()
                         actor:setWornItem(location, item)
                     end)
-                    if okWear then worn = worn + 1 else failed = failed + 1 end
+                    if okWear then
+                        worn = worn + 1
+                    else
+                        failure(record.type, "setWornItem: " .. tostring(wearError))
+                    end
                 else
-                    failed = failed + 1
+                    failure(record.type, "AddItem: " .. tostring(addError))
                 end
             else
-                failed = failed + 1
+                failure(record.type, "bodyLocation indisponivel")
             end
         else
-            failed = failed + 1
+            failure(record.type, "CreateItem: " .. tostring(item))
         end
     end
     if worn > 0 then call(actor, "resetModelNextFrame") end
-    return worn, failed
+    return worn, failed, firstError
 end
 
 Core.Wardrobe = Wardrobe
