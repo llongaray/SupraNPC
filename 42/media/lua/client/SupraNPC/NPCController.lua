@@ -233,7 +233,8 @@ function Controller.update(player)
             end
         end
     end
-    Adapter.restoreOwner(player)
+    -- Evitar redefinir a camera/instancia do jogador a cada frame.
+    if Controller.ticks % 45 == 0 then Adapter.restoreOwner(player) end
 end
 
 return Controller
