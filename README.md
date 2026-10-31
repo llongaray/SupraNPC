@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.16-dev — ataque nativo experimental para golpe/empurrão/pisão, interceptação agressiva, percepção corpo a corpo e ordens ditadas com Win+H no Windows 11.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.17-dev — FOLLOW a 1,3 tile, navegação local com portas/janelas e bloqueio de ataques através de obstáculos.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -64,6 +64,19 @@ O módulo só conta zumbis reais `IsoZombie` vivos e visíveis. O jogador e outr
 **Limitações a validar na B42.13.1:** o empurrão usa a API de queda `knockDown` com chance e só aceita o estado de queda ao observá-lo; a animação original de shove não está comprovada. `PIN` aproxima o NPC do corpo, mas ainda não garante impedir que o zumbi levante por colisão. `STOMP` usa dano direcionado ao zumbi, mas a animação de pisoteio também precisa de validação. A movimentação física e a estratégia com vários NPCs continuam experimentais.
 
 [Checklist específico da 0.1.14-dev](docs/TEST_CHECKLIST_0.1.14.md).
+
+## Navegação consciente de obstáculos — 0.1.17-dev
+
+Depois do teste real da 0.1.16, o NPC ficava afastado do jogador e tentava perseguir inimigos atrás de portas/janelas fechadas. As alterações desta versão tratam **seguir, replanejar e reconhecer acessibilidade**:
+
+- **FOLLOW 1,3 tile:** reduzido de 2,5. Rotas locais por `NPCNavigation.next` e replanejamento quando o jogador muda de posição. Sem teleportes.
+- **Portas:** verifica travas e barricadas, aproxima-se e tenta `ToggleDoor(npc)` **uma vez**. Se não abrir, evita a passagem por 14 segundos e tenta encontrar outra rota. Não força destravamento.
+- **Janelas:** tenta `ToggleWindow(npc)` uma vez quando bloqueiam rota, mas não assume que janela aberta é atravessável. Escalar janelas ainda precisa ser implementado com estado nativo específico.
+- **Roteamento:** busca limitada a 16 tiles/640 nós em caminhos livres, excluindo paredes, janelas e portas trancadas. A defesa passa a abordar zumbis por rotas acessíveis.
+- **Zumbis inacessíveis:** deixam de ser atacados através de obstáculos. Quando não existe rota, são ignorados por 14 segundos e o NPC retoma a ordem sem insistir no mesmo bloqueio.
+- **Segurança:** nenhuma modificação de travas, barricadas ou saúde do obstáculo. Não mexe na fila do jogador.
+
+**Ainda experimental na B42.13.1:** `ToggleDoor`, `ToggleWindow`, passagem real, rotas entre edifícios e movimento fluido requerem teste no jogo. [Checklist 0.1.17](docs/TEST_CHECKLIST_0.1.17.md).
 
 ## Atualizações 0.1.16-dev — ataque nativo e comandos ditados
 
