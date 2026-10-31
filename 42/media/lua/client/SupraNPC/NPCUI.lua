@@ -11,6 +11,7 @@ local Core = require("SupraNPC/Constants")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Health = require("SupraNPC/Health")
 local Controller = require("SupraNPC/NPCController")
+local Speech = require("SupraNPC/NPCSpeech")
 local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil,
     feedback = nil, feedbackTicks = 0 }
 
@@ -165,6 +166,9 @@ local function dispatch(id, cmd, option)
     else
         ok, reason = Controller.order(id, cmd, player, option)
     end
+    local profile=profileById(id)
+    Speech.playerCommand(player,profile and profile.firstName or "Companheiro",
+        cmd,option,ok)
     HUD.feedback = {
         id = id, text = ok and
             (cmd == "STANCE" and ("Postura: " .. tostring(option)) or
@@ -187,7 +191,7 @@ function HUD.openMenu(id)
     local orderOption = m:addOption("Ordens", nil, nil)
     local orders = ISContextMenu:getNew(m)
     m:addSubMenu(orderOption, orders)
-    orders:addOption("Seguir o jogador (experimental)", nil,
+    orders:addOption("Seguir o jogador", nil,
         function() dispatch(id, "FOLLOW") end)
     orders:addOption("Aguardar aqui", nil, function() dispatch(id, "IDLE") end)
     orders:addOption("Guardar esta posicao", nil,
@@ -282,7 +286,12 @@ function Sidebar:render()
         end
         local entry = Controller.get(profile.id)
         local order = entry and entry.state.requested or "OFFLINE"
-        self:drawText(order,61,y+10,0.7,0.78,0.75,1,UIFont.Small)
+        local runtime = entry and entry.navStatus or "OFFLINE"
+        local label = order .. " / " .. runtime
+        self:drawText(label,61,y+10,
+            (runtime=="FAILED" or runtime=="BLOCKED") and 1 or 0.7,
+            (runtime=="FAILED" or runtime=="BLOCKED") and 0.4 or 0.78,
+            0.75,1,UIFont.Small)
         self:drawText(hp.health and (math.floor(hp.health) .. "%") or "?",
             226,y+10,0.7,0.78,0.75,1,UIFont.Small)
     end
@@ -310,6 +319,7 @@ function HUD.close()
     if HUD.rosterPanel then HUD.rosterPanel:removeFromUIManager() end
     if HUD.healthPanel then HUD.healthPanel:removeFromUIManager() end
     HUD.rosterPanel, HUD.healthPanel, HUD.roster = nil,nil,nil
+    Speech.clear()
 end
 
 return HUD
