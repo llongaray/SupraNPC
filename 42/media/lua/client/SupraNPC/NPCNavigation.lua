@@ -95,6 +95,32 @@ end
 function N.clear(id)
  N.blocked[id]=nil
 end
+-- Opening a window does not authorize a crossing (climbing not supported).
+-- Called only in a local, already-failed route; one attempt then use detour.
+function N.tryNearbyWindow(actor,tx,ty,id)
+ local cell=getCell and getCell()
+ if not cell then return false end
+ local ax,ay,az=call(actor,"getX"),call(actor,"getY"),call(actor,"getZ")
+ if not valid(ax) or not valid(ay) or not valid(az) then return false end
+ local x,y,z=math.floor(ax),math.floor(ay),math.floor(az)
+ local sq=call(cell,"getGridSquare",x,y,z)
+ if not sq then return false end
+ local dirs={}
+ if tx>x then dirs[#dirs+1]={1,0} elseif tx<x then dirs[#dirs+1]={-1,0} end
+ if ty>y then dirs[#dirs+1]={0,1} elseif ty<y then dirs[#dirs+1]={0,-1} end
+ for _,dir in ipairs(dirs) do
+   local neighbor=call(cell,"getGridSquare",x+dir[1],y+dir[2],z)
+   local edge=N.edge(sq,neighbor)
+   if edge.kind=="WINDOW" and edge.canTry and
+       not N.isIgnored(id,edge.object) then
+     local ok,reason=N.tryOpen(id,actor,edge)
+     -- Even opened windows require a separate climbing mechanic.
+     N.ignore(id,edge.object)
+     return ok,ok and "window opened; reroute" or reason
+   end
+ end
+ return false
+end
 function N.canCross(a,b,id,allowDoor)
  local e=N.edge(a,b)
  if e.passable then return true,e end
@@ -155,6 +181,7 @@ function N.next(actor,tx,ty,tz,id,free,range)
    end
  end
  if not reached and math.sqrt((bx+0.5-tx)^2+(by+0.5-ty)^2)<limit-2 then
+    N.tryNearbyWindow(actor,tx,ty,id)
     return nil,"no accessible route"
  end
  if not best or best==q[1] then
