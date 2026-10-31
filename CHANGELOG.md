@@ -1,4 +1,14 @@
 # Changelog — SupraNPC
+## 0.1.24-dev — 2026-10-31
+
+- Corrigida a regressao do PTT: B42 atribui Mouse Btn 3 ao ID `10003` (offset do mouse). `VoiceHotkey.lua` agora aceita `10000..10007`, consulta `Mouse.isButtonDown` com transicoes pressionar/soltar e exibe `MOUSE BTN 3`; nunca chama `Keyboard.getKeyName(10003)`.
+- Recuperacao de NPC apos reload em `NPCRecovery.lua`: ficha do save continua com ID, nome, aparencia e ordens; primeiro procura entidade carregada; mantem checkpoint de posicao e so faz reconstrucao automatica apos streaming e se posicao antiga conhecida e proxima.
+- Para saves antigos SEM checkpoint: clique no botao `>` ao lado do NPC offline e selecione `Recuperar NPC desaparecido (mesmo ID)`. O reparo e manual para evitar clonagem silenciosa.
+- Uma recuperacao por NPC/sessao; se encontra corpo, marca falecido e NAO reconstroi. Nunca restaura um NPC morto de proposito.
+- Testes de regressao para clique de mouse/PTT, reanexo, saves antigos, auto restauracao, guarda de clones e morte de NPC.
+- OBS: STT PT-BR por microfone ainda nao esta integrado; o atalho agora reconhece o input, mas o HUD continua exibindo `MIC SEM STT` ate instalar backend real.
+- Recomenda-se save descartavel e backup antes de acionar recuperacao em save anterior ao rastreamento de posicao. Ainda requer validacao B42.13.1 in-game.
+
 ## 0.1.23-dev — 2026-10-31
 
 - Fix do erro recorrente `ArrayIndexOutOfBoundsException: Index 10003 out of bounds for length 256` reportado em `console(3).txt`. Chamadas a `Keyboard.getKeyName` com ID virtual causavam excecoes Java por frame dentro de `NPCUI.render`.
