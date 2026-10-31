@@ -196,6 +196,46 @@ local function ignore(id,z,reason)
     D.ignored[id][z]=now()+14000
     Core.log("DEFENSE "..id.." target temporarily inaccessible: "..tostring(reason))
 end
+-- Low-cost close-quarters pulse while AGGRESSIVE is engaged.
+-- Unlike D.update, this does NOT scan the world or rebuild a route.
+-- It only attempts the next valid native attack on the already-seen zombie,
+-- yielding to any ongoing animation and stopping immediately when it dies.
+function D.pulse(entry,player,team)
+    local id=entry and entry.profile and entry.profile.id
+    local old=id and D.STATES[id]
+    if not old or entry.stance~="AGGRESSIVE" or entry.retreating or
+       not entry.state or entry.state.active~="SELF_DEFEND" then return false end
+    local actor=entry.actor
+    local target=old.target
+    if not actor or call(actor,"isDead")~=false or not actor.DoAttack or
+       not zombie(target) or
+       (Navigation.isClimbing and Navigation.isClimbing(id,actor)) then
+       return false
+    end
+    local ms=now()
+    if ms<(old.nextStrikeAt or 0) then return false end
+    local mode=NativeAttack.choose(actor,target)
+    if mode~="SHOVE" and mode~="SWING" and mode~="GROUND" then return false end
+    -- Standing threats take precedence over a downed zombie underfoot.
+    if mode=="GROUND" and entry.lastObservation and
+       (entry.lastObservation.nearStanding or 0)>0 then return false end
+    if Walking.active(id) then cancel(entry,"alcance de ataque") end
+    local ok,reason=NativeAttack.execute(actor,target,mode,player,team)
+    old.nextStrikeAt=ms+(ok and 260 or
+        reason=="attack animation running" and 80 or 140)
+    if ok then
+        old.nativeRejects=0
+        old.lastAction=mode=="GROUND" and "STOMP" or mode
+        entry.navStatus=old.lastAction
+    elseif reason~="attack animation running" and
+        reason~=old.lastPulseError then
+        Core.log("COMBAT_PULSE "..id.." "..tostring(mode)..
+            " rejected: "..tostring(reason))
+        old.lastPulseError=reason
+    end
+    return ok
+end
+
 -- Called before ALL manual orders on every controller update.
 -- player/team needed to distinguish solo escape from supported group defense.
 function D.update(entry,player,team)
@@ -342,6 +382,7 @@ function D.update(entry,player,team)
  -- Keep the existing TimedAction alive during flee/approach/pin.
  -- Cancelling it on each tactical update was the cause of standing still.
  local target=obs.nearest or obs.firstVisible
+ old.target=obs.nearest or obs.nearestDown or obs.firstVisible
  if action=="SHOVE" or action=="SWING" or action=="STOMP" or action=="BACKSTEP" then
     cancel(entry,"troca de fase combate")
  elseif action=="FLEE" and old.lastAction~="FLEE" then
@@ -359,26 +400,33 @@ function D.update(entry,player,team)
     local ok,reason=false,"no valid target"
     if valid then
        if actor.DoAttack then
-          -- Native Build 42 selects animations and collision; never mix
-          -- native damage with a manual Hit() for the same attack.
-          ok,reason=NativeAttack.execute(actor,hitTarget,
-              action=="STOMP" and "GROUND" or action,player,team)
+          -- Native B42 owns collision/animação. Never double-hit a successful
+          -- native attack; retries are paced by animation and time.
+          if nowMs < (old.nextStrikeAt or 0) then
+              reason="attack cooldown"
+          else
+              ok,reason=NativeAttack.execute(actor,hitTarget,
+                  action=="STOMP" and "GROUND" or action,player,team)
+              old.nextStrikeAt=nowMs+(ok and 260 or
+                  reason=="attack animation running" and 80 or 140)
+          end
        elseif action=="SHOVE" then
-          -- Legacy tests only, where mock actor has no DoAttack.
+          -- Legacy test adapter where the mock has no DoAttack.
           ok,reason=D.shove(actor,hitTarget)
        elseif action=="STOMP" then
           ok,reason=D.hit(actor,hitTarget)
        else reason="native attack unavailable" end
     end
-    old.nextAction=nowMs+(action=="SHOVE" and 550 or
-        action=="SWING" and 650 or D.PERIOD_MS)
+    old.nextAction=nowMs+(actor.DoAttack and 180 or
+        (action=="SHOVE" and 550 or action=="SWING" and 650 or D.PERIOD_MS))
     if action=="SHOVE" and ok then
        old.shoveTarget=hitTarget
        old.shoveCheck=nowMs+600
        if (old.planner.cycles or 0)<=1 then
           Speech.npcAlert(actor,"COMBAT")
        end
-    elseif not ok and reason~="attack animation running" then
+    elseif not ok and reason~="attack animation running" and
+        reason~="attack cooldown" then
        if action=="SHOVE" then
           old.planner.failedShoves=(old.planner.failedShoves or 0)+1
        end
