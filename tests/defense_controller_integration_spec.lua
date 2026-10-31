@@ -88,11 +88,9 @@ assert(Defense.STATES.npcA and z1.down)
 assert(Controller.get("npcA").state.active=="SELF_DEFEND")
 assert(Controller.get("npcA").state.requested=="FOLLOW")
 assert(movement.cancels>=1)
-ticks(15) -- PIN: outside stomp range
-assert(Controller.get("npcA").navStatus=="PIN")
+ticks(15) -- STOMP: dentro de 1.35 tiles
+assert(Controller.get("npcA").navStatus=="STOMP" and z1.hp<0.8)
 npc.x=0.45
-ticks(15) -- STOMP
-assert(z1.hp<0.8)
 ticks(15)
 assert(z1.dead)
 ticks(15) -- resume original order and follow
