@@ -6,6 +6,7 @@ local Core = require("SupraNPC/Constants")
 local Orders = require("SupraNPC/Orders")
 local Walking = require("SupraNPC/NPCWalking")
 local Tactics = require("SupraNPC/CombatTactics")
+local StancePolicy = require("SupraNPC/StancePolicy")
 local Perception = require("SupraNPC/NPCPerception")
 local Speech = require("SupraNPC/NPCSpeech")
 local NativeAttack = require("SupraNPC/NPCNativeAttack")
@@ -237,11 +238,8 @@ function D.update(entry,player,team)
  end
  local health=call(call(actor,"getBodyDamage"),"getOverallBodyHealth")
  local danger=Perception.risk(obs,health)
- local confirmedRetreat=danger.retreat -- before historical-threat override
  local visible=obs.seen or 0
- local near=(obs.nearStanding or 0)+(obs.nearDown or 0)
  local stance=entry.stance or "DEFENSIVE"
- local engageRange=stance=="AGGRESSIVE" and 9.0 or (stance=="PASSIVE" and 2.2 or 5.0)
  -- Threat memory prevents FOLLOW resuming while escaping a group
  -- simply because the NPC turned away from the vision cone.
  local memory=false
@@ -259,16 +257,22 @@ function D.update(entry,player,team)
        end
     end
  end
- if memory then
-    danger.retreat=true
-    if not obs.firstVisible then obs.firstVisible=rememberedThreat end
+ local policy=StancePolicy.decide(stance,obs,health,danger,memory)
+ local engageRange=policy.range
+ -- Only real visible danger renews retreat memory, never memory itself.
+ local confirmedRetreat=StancePolicy.decide(stance,obs,health,danger,false).retreat
+ danger.retreat=policy.retreat
+ if memory and policy.retreat and not obs.firstVisible then
+    obs.firstVisible=rememberedThreat
  end
- entry.retreating=danger.retreat
- local engage=(obs.nearestDistance and obs.nearestDistance<=engageRange)
-       or (obs.nearestDownDistance and obs.nearestDownDistance<=engageRange)
-       or (obs.alertDistance and obs.alertDistance<=engageRange)
-       or (danger.retreat and ((obs.alertDistance and
-           obs.alertDistance<=10) or memory))
+ entry.retreating=policy.retreat
+ local engage=policy.engage
+ -- Nearby enemies still qualify even if the observation exposes only
+ -- near-distance fields (e.g. specialized B42 perception adapters).
+ if not engage and (obs.nearestDistance and obs.nearestDistance<=engageRange
+    or obs.nearestDownDistance and obs.nearestDownDistance<=engageRange) then
+    engage=true
+ end
  if visible>0 and not old then
     Speech.npcAlert(actor,"SPOTTED")
  end
@@ -288,7 +292,9 @@ function D.update(entry,player,team)
     cancel(entry,"autodefesa prioridade maxima")
     old={entry=entry,planner=Tactics.new(),lastError=nil,nextAction=0}
     D.STATES[id]=old
-    Core.log("DEFENSE "..id.." iniciou; ordem preservada "..entry.state.requested)
+    Core.log("DEFENSE "..id.." stance="..policy.stance..
+        " retreat="..tostring(policy.retreat)..
+        "; ordem preservada "..entry.state.requested)
  end
  Orders.evaluate(entry.state,{selfThreat=not danger.retreat,mustRetreat=danger.retreat})
  if danger.retreat then
@@ -327,7 +333,8 @@ function D.update(entry,player,team)
     alertDistance=obs.alertDistance,nearestDistance=obs.nearestDistance,
     nearestDownDistance=obs.nearestDownDistance,visible=obs.visible,
     downVisible=obs.downVisible,mustRetreat=danger.retreat,
-     melee=obs.npcWeapon.category=="MELEE",engageRange=engageRange
+     melee=obs.npcWeapon.category=="MELEE",engageRange=engageRange,
+     stance=policy.stance
  })
  if not action then return true end
  -- Keep the existing TimedAction alive during flee/approach/pin.
