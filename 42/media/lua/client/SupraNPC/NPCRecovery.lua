@@ -92,6 +92,10 @@ function Recovery.restore(player,data,id,manual)
     if locate(id,profile) then
         return true,"NPC ja existe"
     end
+    -- locate may have discovered a dead IsoPlayer in a loaded square.
+    if profile.deceased or profile.humanSpawned~=true then
+        return false,"NPC morto; sem ressurreicao"
+    end
     if Recovery.attempts[id] then
         return false,"recuperacao ja tentada nesta sessao"
     end
