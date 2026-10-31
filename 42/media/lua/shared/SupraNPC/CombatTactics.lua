@@ -23,6 +23,7 @@ function T.plan(state, input)
     local action,tactic
     if standing==0 and down==0 then
         state.escape=false
+        state.hasPushed=false
         action,tactic="RESUME","NONE"
     elseif standing==0 and state.escape then
         -- Fuga solo iniciada por uma horda nao muda para stomp automaticamente.
@@ -55,8 +56,9 @@ function T.plan(state, input)
                 action="WAIT"
             elseif valid(d) and d<=T.SHOVE_RANGE and visible then
                 action="SHOVE"
-            elseif not visible then
-                action="WAIT" -- deixa os zumbis se aproximarem
+            elseif not visible or (state.hasPushed and valid(d) and
+                d>T.SHOVE_RANGE) then
+                action="WAIT" -- depois de empurrar, deixar o zumbi se aproximar
             else action="APPROACH" end
         else
             tactic="SINGLE_CONTROL"
@@ -68,12 +70,17 @@ function T.plan(state, input)
                 action="WAIT"
             elseif valid(d) and d<=T.SHOVE_RANGE then
                 action="SHOVE"
+            elseif state.hasPushed then
+                action="WAIT" -- nao correr atras apos recuar
             elseif state.last=="APPROACH" then
                 action="WAIT"
             else action="APPROACH" end
         end
     end
-    if action=="SHOVE" then state.cycles=(state.cycles or 0)+1 end
+    if action=="SHOVE" then
+        state.cycles=(state.cycles or 0)+1
+        state.hasPushed=true
+    end
     state.last,state.tactic=action,tactic
     return action,tactic
 end
