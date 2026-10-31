@@ -72,13 +72,18 @@ function Adapter.pickSquare(player, reserved)
     return nil, nil
 end
 
-function Adapter.quietProxy(actor, profile)
-    if not actor then return false end
-    -- Manter a entidade neutra para este PRIMEIRO teste de aparicao.
+function Adapter.enforceNeutral(actor)
+    if not actor then return end
+    -- Os proxies possuem chassi IsoZombie: impedir ataque em todo update.
     call(actor, "setTarget", nil)
     call(actor, "setNoTeeth", true)
     call(actor, "setUseless", true)
     call(actor, "setVariable", "NoLungeTarget", true)
+end
+
+function Adapter.quietProxy(actor, profile)
+    if not actor then return false end
+    Adapter.enforceNeutral(actor)
     call(actor, "setDressInRandomOutfit", false)
     call(actor, "setFemaleEtc", profile.female == true)
     call(actor, "setWalkType", "Walk")
