@@ -1,4 +1,13 @@
 # Changelog — SupraNPC
+## 0.1.13-dev — 2026-10-31
+
+- Adicionado `NPCDefense.lua` com varredura limitada de zumbis `IsoZombie` carregados e visíveis, prioridade máxima de autodefesa e seleção de alvo exclusivo.
+- Golpe corpo a corpo pelo `IsoZombie:Hit(weapon,actor,damage,false,1.0)` da engine, com alcance real da arma, limite de dano e intervalo mínimo entre golpes. Usa `Base.BareHands` oficial se disponível e NPC não possui arma melee.
+- Se houver zumbi próximo, cancela caminhada e muda somente `active` para SELF_DEFEND; a ordem `requested` permanece intacta. Ao encerrar, retorna à ordem anterior (FOLLOW/IDLE/GUARD).
+- Acrescentada aproximação curta pelo `NPCWalking`; não persegue zumbi além da região imediata.
+- Testes `npc_defense_spec.lua`: prioridade, cooldown, dano alvo-específico, não atingir jogadores/NPCs, filtro de visão e andar, arma desarmada e restauração da tarefa.
+- **QA in-game pendente:** dano efetivo, animações, contato, navegação em interiores e estabilidade contra múltiplos zumbis.
+
 
 ## 0.1.12-dev — 2026-10-31
 
