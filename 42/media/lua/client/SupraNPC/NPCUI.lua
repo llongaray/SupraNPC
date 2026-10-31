@@ -17,6 +17,7 @@ local Speech = require("SupraNPC/NPCSpeech")
 local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 local VoiceCommands = require("SupraNPC/VoiceCommands")
 local VoiceHotkey = require("SupraNPC/VoiceHotkey")
+local VoiceBridge = require("SupraNPC/VoiceBridge")
 local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil, helpPanel = nil,
     feedback = nil, feedbackTicks = 0 }
 
