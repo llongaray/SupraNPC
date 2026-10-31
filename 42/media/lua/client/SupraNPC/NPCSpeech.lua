@@ -14,9 +14,9 @@ local PHRASES={
     IDLE={"%s, fica aqui!","%s, pode esperar aqui!","%s, aguarda aqui!"},
     GUARD_PLAYER={"%s, guarda esse ponto!","%s, fica de guarda aqui!"},
     GUARD_NPC={"%s, protege essa posicao!","%s, vigia esse lugar!"},
-    PASSIVE={"%s, evita confrontos!","%s, postura passiva!"},
-    DEFENSIVE={"%s, fica na defensiva!","%s, toma cuidado!"},
-    AGGRESSIVE={"%s, fica em alerta!","%s, postura agressiva!"}
+    PASSIVE={"%s, nao lute, fuja dos zumbis!","%s, postura passiva!"},
+    DEFENSIVE={"%s, lute, mas recue se precisar!","%s, defenda-se primeiro!"},
+    AGGRESSIVE={"%s, ataque os zumbis!","%s, postura agressiva: elimine os mortos!"}
 }
 local count=0
 function Speech.compose(name,cmd,option,success)
@@ -55,9 +55,9 @@ local NPC_ANSWERS={
     RETURN_BASE={"Vou para a base!","A caminho de casa!"},
     IDLE={"Entendido, vou esperar!","Vou ficar aqui."},
     GUARD={"Vou vigiar esse local.","Deixa comigo!"},
-    PASSIVE={"Vou evitar problemas."},
-    DEFENSIVE={"Fico na defensiva."},
-    AGGRESSIVE={"Certo, estarei em alerta."}
+    PASSIVE={"Nao vou lutar, vou fugir!"},
+    DEFENSIVE={"Vou lutar. Recuo se o risco for alto!"},
+    AGGRESSIVE={"Vou eliminar os zumbis!"}
 }
 local WARNINGS={
     SPOTTED={"Zumbis la na frente!","Vi mortos por ali!"},
