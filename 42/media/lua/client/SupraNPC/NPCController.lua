@@ -4,6 +4,7 @@ local Core = require("SupraNPC/Constants")
 local Orders = require("SupraNPC/Orders")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Walking = require("SupraNPC/NPCWalking")
+local Defense = require("SupraNPC/NPCDefense")
 local Controller = {entries={},ticks=0}
 local STANCES = {PASSIVE=true, DEFENSIVE=true, AGGRESSIVE=true}
 local function call(obj,method,...)
@@ -33,6 +34,7 @@ local function persist(entry)
     end
 end
 function Controller.clear()
+    Defense.clear()
     for id in pairs(Controller.entries) do Walking.cancel(id,"limpeza") end
     Controller.entries,Controller.ticks={},0
 end
@@ -75,7 +77,9 @@ function Controller.order(id,command,player,which)
         if not ok then return false,reason end
     end
     -- Ordem substitui somente a acao pertencente a ESTE NPC, nunca a do player.
-    Walking.cancel(id,"nova ordem")
+    -- O jogador pode alterar requested durante ataque; defesa continua
+    -- com prioridade e a nova ordem sera retomada depois da luta.
+    if not Defense.STATES[id] then Walking.cancel(id,"nova ordem") end
     local ok,reason=Orders.set(entry.state,command)
     if not ok then return false,reason end
     entry.navError=nil
@@ -83,7 +87,8 @@ function Controller.order(id,command,player,which)
     entry.navDisabled=false
     entry.anchor=nil
     entry.nextRequest=0
-    entry.navStatus=command=="IDLE" and "WAITING" or "READY"
+    entry.navStatus=Defense.STATES[id] and "DEFENDING" or
+        (command=="IDLE" and "WAITING" or "READY")
     persist(entry)
     Core.log("ORDER "..id.." "..command.." status="..entry.navStatus)
     return true
@@ -117,7 +122,10 @@ local function walk(entry,square,target)
         if result=="substituido" or result=="nova ordem" or
            result=="reattach" or result=="limpeza" or
            result=="aguardar" or result=="proximo do jogador" or
-           result=="ponto alcancado" or result=="entidade perdida" then return end
+           result=="ponto alcancado" or result=="entidade perdida" or
+           result=="autodefesa prioridade maxima" or
+           result=="alcance de ataque" or result=="troca de zumbi" or
+           result=="ameaça encerrada" or result=="combat reset" then return end
         if result=="sucesso" then
             entry.navStatus=entry.state.requested=="GUARD" and "HOLD" or "ARRIVED"
             entry.navError=nil
@@ -197,7 +205,11 @@ function Controller.update(player)
     for id,entry in pairs(Controller.entries) do
         if Adapter.get(id)==entry.actor and
            call(entry.actor,"isDead")~=true then
-            if entry.state.active=="IDLE" then
+            -- Defesa passa antes de QUALQUER ordem manual; nao apaga requested.
+            local fighting=Defense.update(entry)
+            if fighting then
+                entry.navStatus="DEFENDING"
+            elseif entry.state.active=="IDLE" then
                 if Walking.active(id) then Walking.cancel(id,"aguardar") end
                 entry.navStatus="WAITING"
             elseif not entry.navDisabled and Controller.ticks>=entry.nextRequest then
