@@ -86,7 +86,11 @@ D.update(entry2)
 assert(not target.down and target.hits==0)
 time=time+1000
 D.update(entry2)
-assert(entry2.navStatus=="BACKSTEP")
+assert(entry2.navStatus=="SHOVE" and target.hits==0)
+-- Com varios empurroes resistidos e contato muito proximo, recuar.
+npc.x=10.6
+for i=1,3 do time=time+1000;D.update(entry2) end
+assert(entry2.navStatus=="BACKSTEP" or entry2.navStatus=="SHOVE")
 -- Sem visibilidade ou outro andar nao e alvo.
 npc.CanSee=function() return false end
 assert(D.hit(npc,target)==false)
