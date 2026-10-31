@@ -64,16 +64,13 @@ assert(entry.state.active=="SELF_DEFEND" and entry.state.requested=="FOLLOW")
 assert(target.down and target.hits==0)
 time=time+1000
 D.update(entry)
-assert(entry.navStatus=="PIN" and target.hits==0)
--- Aproximou fisicamente: so agora o alvo caido pode levar golpes.
+assert(entry.navStatus=="STOMP" and target.hits==1)
+-- Piso nativo pode funcionar a ate 1.35 tile; concluir no segundo golpe.
 npc.x=10.4
-time=time+1000
-D.update(entry)
-assert(target.hits==1 and entry.navStatus=="STOMP")
-assert(D.hit(npc,friendly)==false) -- jamais bater no jogador
 time=time+1100
 D.update(entry)
 assert(target.dead and target.hits==2)
+assert(D.hit(npc,friendly)==false) -- jamais bater no jogador
 time=time+1100
 assert(D.update(entry)==false)
 assert(entry.state.active=="FOLLOW" and D.STATES.A==nil)
