@@ -7,6 +7,7 @@ local TeamFlow = require("SupraNPC/TeamFlow")
 local Adapter = require("SupraNPC/SpawnAdapter")
 local Renderer = require("SupraNPC/Renderer")
 local Controller = require("SupraNPC/NPCController")
+local Recovery = require("SupraNPC/NPCRecovery")
 local NPCUI = require("SupraNPC/NPCUI")
 local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 
@@ -143,21 +144,12 @@ local function onTick()
        data.spawnStatus == "retry_human" then
         spawnStep(player, data)
     elseif data.spawnStatus == "human_spawned" then
-        -- Reanexar objetos do mundo ao renderizador ao recarregar o save,
-        -- sem criar clones em caso de entidades nao persistidas.
-        local cell = getCell and getCell()
-        for _, profile in ipairs(data.roster.profiles or {}) do
-            if profile.humanSpawned and not Adapter.get(profile.id) then
-                local existing = Adapter.findExisting(cell, profile.id)
-                if existing then
-                    Adapter.attach(profile.id, existing)
-                    Controller.attach(profile, existing)
-                    Core.log("NPC reanexado ao render: " .. profile.id)
-                end
-            end
-        end
+        -- Reanexa quando o IsoPlayer existe. Saves antigos sem snapshot
+        -- exigem recuperacao explicita pelo HUD para evitar clones.
+        -- Saves novos recuperam automaticamente apos streaming/grace.
+        Recovery.update(player,data,Boot.ticks)
         if Boot.lastNotice ~= data.spawnStatus then
-            Core.log("Equipe: human_spawned; restore de entidade apos reload ainda experimental")
+            Core.log("Equipe: human_spawned; recover/reattach habilitado")
             Boot.lastNotice = data.spawnStatus
         end
     elseif data.spawnStatus ~= Boot.lastNotice then
@@ -196,6 +188,7 @@ local function onGameStart()
     Adapter.clear()
     Renderer.reset()
     Controller.clear()
+    Recovery.reset()
     NPCUI.close()
     MapKnowledge.reset()
     local player = currentPlayer()
@@ -216,6 +209,7 @@ if Events then
         Adapter.clear()
         Renderer.reset()
         Controller.clear()
+        Recovery.reset()
         NPCUI.close()
         MapKnowledge.reset()
         TeamSetup.install()
