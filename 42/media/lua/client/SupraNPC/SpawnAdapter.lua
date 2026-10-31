@@ -17,9 +17,18 @@ function Adapter.spawn(player, profile, reserved)
 end
 
 function Adapter.enforceNeutral(actor)
-    -- Apenas compatibilidade para referencias antigas nos callbacks.
-    -- Isto NAO torna zumbis em NPCs. Nao modificar entidades aqui.
-    return false
+    -- Mitigacao somente para entidades antigas identificadas pelo Boot
+    -- com md.SupraNPC_Proxy == true. Nao converte em NPC e nao garante seguranca.
+    if not actor then return false end
+    local function try(method, ...)
+        local ok, fn = pcall(function() return actor[method] end)
+        if ok and fn then pcall(fn, actor, ...) end
+    end
+    try("setTarget", nil)
+    try("setNoTeeth", true)
+    try("setUseless", true)
+    try("setVariable", "NoLungeTarget", true)
+    return true
 end
 
 Core.SpawnAdapter = Adapter
