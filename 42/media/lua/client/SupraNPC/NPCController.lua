@@ -115,7 +115,9 @@ local function walk(entry,square,target)
     local ok,why=Walking.start(id,entry.actor,square,function(result)
         -- Nao apagar nova ordem caso callback seja disparado em cancelamento.
         if result=="substituido" or result=="nova ordem" or
-           result=="reattach" or result=="limpeza" then return end
+           result=="reattach" or result=="limpeza" or
+           result=="aguardar" or result=="proximo do jogador" or
+           result=="ponto alcancado" or result=="entidade perdida" then return end
         if result=="sucesso" then
             entry.navStatus=entry.state.requested=="GUARD" and "HOLD" or "ARRIVED"
             entry.navError=nil
