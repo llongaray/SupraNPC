@@ -442,6 +442,9 @@ function Sidebar:render()
             (runtime=="FAILED" or runtime=="BLOCKED") and 1 or 0.7,
             (runtime=="FAILED" or runtime=="BLOCKED") and 0.4 or 0.78,
             0.75,1,UIFont.Small)
+        self:drawText("Postura: "..tostring(entry and entry.stance or
+            profile.stance or "DEFENSIVE"),61,y+27,
+            0.85,0.77,0.55,1,UIFont.Small)
         self:drawText(hp.health and (math.floor(hp.health) .. "%") or "?",
             226,y+10,0.7,0.78,0.75,1,UIFont.Small)
     end
