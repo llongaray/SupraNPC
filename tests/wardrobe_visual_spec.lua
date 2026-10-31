@@ -50,3 +50,41 @@ assert(good==1 and failed==0 and created)
 assert(applied.hue==0.1 and applied.base==2 and applied.texture==4)
 assert(applied.tint.r==0.3 and applied.tint.g==0.6 and applied.tint.b==0.8)
 print("[SupraNPC] wardrobe_visual_spec: OK")
+
+-- O fluxo correto do vanilla veste SurvivorDesc ANTES de IsoPlayer.new.
+local dressed = {}
+instanceItem = function(t)
+    return {
+        getBodyLocation=function() return "Torso" end,
+        getVisual=function() return {
+            setHue=function() end, setBaseTexture=function() end,
+            setTextureChoice=function() end, setTint=function() end
+        } end
+    }
+end
+local descriptor = {
+    setWornItem=function(_,loc,item)
+        dressed[#dressed+1] = {loc=loc,item=item}
+    end
+}
+local count, failures = Wardrobe.dressDescriptor(descriptor, entries)
+assert(count == 1 and failures == 0 and #dressed == 1)
+assert(dressed[1].loc == "Torso")
+
+local already = {
+    getWornItems=function()
+        local list={size=function() return 1 end,
+            get=function() return {getItem=function() return {
+                getFullType=function() return "Base.Shirt_FormalWhite" end
+            } end} end}
+        return list
+    end
+}
+local missing=Wardrobe.missing(already,entries)
+assert(#missing == 0)
+local required=Wardrobe.missing(already,{
+    {type="Base.Shirt_FormalWhite"},
+    {type="Base.Trousers_Denim"}
+})
+assert(#required == 1 and required[1].type == "Base.Trousers_Denim")
+print("[SupraNPC] wardrobe descriptor e missing: OK")
