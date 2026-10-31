@@ -18,10 +18,14 @@ local function symbols()
  end
  if ISWorldMap_instance then frames[#frames+1]=ISWorldMap_instance end
  for _,frame in ipairs(frames) do
-    local candidates={frame,call(frame,"getAPI"),call(frame,"getMapAPI")}
+    local candidates={}
+    local function add(ui) if ui then candidates[#candidates+1]=ui end end
+    add(frame)
+    add(call(frame,"getAPI"))
+    add(call(frame,"getMapAPI"))
     if frame.javaObject then
-       candidates[#candidates+1]=frame.javaObject
-       candidates[#candidates+1]=call(frame.javaObject,"getAPI")
+       add(frame.javaObject)
+       add(call(frame.javaObject,"getAPI"))
     end
     for _,ui in ipairs(candidates) do
        local api=call(ui,"getSymbolsAPI")
