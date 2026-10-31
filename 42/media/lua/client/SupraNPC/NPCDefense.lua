@@ -9,8 +9,9 @@ local Tactics = require("SupraNPC/CombatTactics")
 local Perception = require("SupraNPC/NPCPerception")
 local Speech = require("SupraNPC/NPCSpeech")
 local NativeAttack = require("SupraNPC/NPCNativeAttack")
+local Navigation = require("SupraNPC/NPCNavigation")
 local D = { RADIUS=4.0, REACH=1.45, PERIOD_MS=1050, MAX_SQUARES=81,
-    MAX_OBJECTS=280, MAX_CHASE=4.0, STATES={} }
+    MAX_OBJECTS=280, MAX_CHASE=4.0, STATES={}, ignored={} }
 local function call(o,k,...)
     if not o then return nil end
     local args={...}
@@ -86,7 +87,8 @@ function D.hit(actor,target)
         return false,"alvo invalido"
     end
     local d=distance(actor,target)
-    if not d or d>D.REACH or not canSee(actor,target,d) then
+    if not d or d>D.REACH or not canSee(actor,target,d) or
+       (getCell and not Navigation.attackAccessible(actor,target)) then
         return false,"alvo fora do alcance ou sem visibilidade"
     end
     local weapon=weaponOf(actor)
@@ -131,7 +133,9 @@ end
 -- Queda so ocorre se verificacao de alcance/visao e sorte permitirem.
 function D.shove(actor,target)
     local ok,d=validTarget(actor,target,Tactics.SHOVE_RANGE)
-    if not ok or fallen(target) then return false,"alvo nao empurravel" end
+    if not ok or fallen(target) or
+       (getCell and not Navigation.attackAccessible(actor,target)) then
+       return false,"alvo nao empurravel" end
     if not target.knockDown then return false,"knockDown indisponivel" end
     if call(actor,"canPerformHandToHandCombat")==false then
         return false,"maos ocupadas" end
@@ -181,6 +185,13 @@ function D.reset(id)
 end
 function D.clear()
     for id in pairs(D.STATES) do D.reset(id) end
+    D.ignored={}
+end
+local function ignore(id,z,reason)
+    if not z then return end
+    D.ignored[id]=D.ignored[id] or {}
+    D.ignored[id][z]=now()+14000
+    Core.log("DEFENSE "..id.." target temporarily inaccessible: "..tostring(reason))
 end
 -- Called before ALL manual orders on every controller update.
 -- player/team needed to distinguish solo escape from supported group defense.
@@ -194,6 +205,33 @@ function D.update(entry,player,team)
     return false
  end
  local obs=Perception.observe(actor,player,team)
+ local ignored=D.ignored[id] or {}
+ if obs.seen>0 and type(obs.visibleTargets)=="table" then
+    local unblocked=nil
+    for _,target in ipairs(obs.visibleTargets) do
+       if not ignored[target] or ignored[target]<=now() or
+          (distance(actor,target) and distance(actor,target)<2 and
+              Navigation.attackAccessible(actor,target)) then
+           unblocked=target
+           ignored[target]=nil
+           break
+       end
+    end
+    if not unblocked then
+       if old then
+           cancel(entry,"target inaccessible")
+           Orders.evaluate(entry.state,{})
+           D.STATES[id]=nil
+       end
+       entry.navStatus="TARGET_BLOCKED"
+       return false
+    elseif obs.nearest and ignored[obs.nearest] and ignored[obs.nearest]>now() then
+       -- Do not keep choosing the same blocked enemy when alternatives exist.
+       obs.nearest=unblocked
+       obs.nearestDistance=distance(actor,unblocked)
+       obs.firstVisible=unblocked
+    end
+ end
  local health=call(call(actor,"getBodyDamage"),"getOverallBodyHealth")
  local danger=Perception.risk(obs,health)
  local visible=obs.seen or 0
@@ -325,10 +363,15 @@ function D.update(entry,player,team)
     end
  elseif action=="PIN" then
     local z=obs.nearestDown
-    local sq=z and Walking.pickAround and Walking.pickAround(
-       math.floor(z:getX()),math.floor(z:getY()),
-       math.floor(z:getZ()),actor)
-    moveTo(entry,sq,"PIN")
+    if z then
+       local sq,reason=Navigation.next(actor,z:getX(),z:getY(),
+           z:getZ(),id,Walking.free,1.0)
+       if sq then moveTo(entry,sq,"PIN")
+       elseif reason~="already near" and reason~="door opened" then
+           ignore(id,z,reason)
+           entry.navStatus="TARGET_BLOCKED"
+       end
+    end
     old.nextAction=nowMs+500
  elseif action=="BACKSTEP" then
     moveAway(entry,target,2,"BACKSTEP")
@@ -346,9 +389,13 @@ function D.update(entry,player,team)
  elseif action=="APPROACH" then
     local z=target
     if z and not Walking.active(id) then
-       local sq=Walking.pickAround(math.floor(z:getX()),
-          math.floor(z:getY()),math.floor(z:getZ()),actor)
-       moveTo(entry,sq,"APPROACH")
+       local sq,reason=Navigation.next(actor,z:getX(),z:getY(),
+           z:getZ(),id,Walking.free,1.35)
+       if sq then moveTo(entry,sq,"APPROACH")
+       elseif reason~="already near" and reason~="door opened" then
+           ignore(id,z,reason)
+           entry.navStatus="TARGET_BLOCKED"
+       end
     end
     old.nextAction=nowMs+550
  else
