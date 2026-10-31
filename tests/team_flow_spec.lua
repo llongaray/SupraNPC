@@ -101,3 +101,28 @@ assert(Core.pendingRoster.profiles[2].firstName == "Bruno")
 assert(Core.pendingRoster.profiles[1].id ~= Core.pendingRoster.profiles[2].id)
 assert(Flow.session == nil)
 print("[SupraNPC] teste de transicoes personagem->NPCs->mundo: OK")
+
+-- Regressao: ISButton retém onclick no momento de create().
+-- O hook deve religar botoes existentes e botoes criados mais tarde.
+CharacterCreationMain = {
+    onOptionMouseDown = function() end,
+    render = function() end,
+    create = function(self) self.playButton = { onclick = function() end } end
+}
+CharacterCreationProfession = {
+    onOptionMouseDown = function() end,
+    render = function() end,
+    create = function(self) self.backButton = { onclick = function() end } end
+}
+create.playButton = { onclick = function() end }
+profession.backButton = { onclick = function() end }
+Flow.install()
+assert(create.playButton.onclick == CharacterCreationMain.onOptionMouseDown)
+assert(profession.backButton.onclick == CharacterCreationProfession.onOptionMouseDown)
+local anotherMain = {}
+CharacterCreationMain.create(anotherMain)
+assert(anotherMain.playButton.onclick == CharacterCreationMain.onOptionMouseDown)
+local anotherProf = {}
+CharacterCreationProfession.create(anotherProf)
+assert(anotherProf.backButton.onclick == CharacterCreationProfession.onOptionMouseDown)
+print("[SupraNPC] teste de callbacks de ISButton: OK")
