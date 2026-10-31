@@ -5,7 +5,8 @@
 local Core = require("SupraNPC/Constants")
 local Orders = require("SupraNPC/Orders")
 local Walking = require("SupraNPC/NPCWalking")
-local D = { RADIUS=3.2, REACH=1.45, PERIOD_MS=1050, MAX_SQUARES=49,
+local Tactics = require("SupraNPC/CombatTactics")
+local D = { RADIUS=4.0, REACH=1.45, PERIOD_MS=1050, MAX_SQUARES=81,
     MAX_OBJECTS=280, MAX_CHASE=4.0, STATES={} }
 local function call(o,k,...)
     if not o then return nil end
@@ -145,6 +146,130 @@ local function cancel(entry,why)
         Walking.cancel(entry.profile.id,why)
     end
 end
+local function fallen(target)
+    if not zombie(target) or call(target,"isGettingUp")==true or
+       call(target,"isCrawling")==true then return false end
+    return call(target,"isOnFloor")==true or call(target,"isProne")==true
+end
+local function allyNearby(actor,player,team)
+    local function close(candidate)
+        if not candidate or candidate==actor or call(candidate,"isDead")~=false then
+            return false end
+        local d=distance(actor,candidate)
+        return d and d<=4.0
+    end
+    if close(player) then return true end
+    if type(team)=="table" then
+        for _, e in pairs(team) do
+            if type(e)=="table" and close(e.actor) then return true end
+        end
+    end
+    return false
+end
+function D.observe(actor,player,team)
+    local obs={standing=0,down=0,nearest=nil,nearestDown=nil,
+        nearestDistance=nil,nearestDownDistance=nil,visible=false,
+        downVisible=false,ally=allyNearby(actor,player,team)}
+    local x,y,z=call(actor,"getX"),call(actor,"getY"),call(actor,"getZ")
+    local cell=getCell and getCell()
+    if not cell or not finite(x) or not finite(y) or not finite(z) then
+        return obs end
+    local bx,by,bz=math.floor(x),math.floor(y),math.floor(z)
+    local inspected,seen=0,{}
+    for ox=-4,4 do
+        for oy=-4,4 do
+            local sq=call(cell,"getGridSquare",bx+ox,by+oy,bz)
+            local objects=call(sq,"getMovingObjects")
+            local n=call(objects,"size")
+            if type(n)=="number" and n>=0 and n<=32 then
+                for i=0,n-1 do
+                    inspected=inspected+1
+                    if inspected>D.MAX_OBJECTS then return obs end
+                    local target=call(objects,"get",i)
+                    if target and not seen[target] then
+                        seen[target]=true
+                        if zombie(target) and call(target,"getCurrentSquare")==sq then
+                            local dist=distance(actor,target)
+                            if dist and dist<=D.RADIUS then
+                                local down=fallen(target)
+                                if down then
+                                    obs.down=obs.down+1
+                                    if not obs.nearestDownDistance or
+                                       dist<obs.nearestDownDistance then
+                                        obs.nearestDown=target
+                                        obs.nearestDownDistance=dist
+                                        obs.downVisible=canSee(actor,target,dist)
+                                    end
+                                else
+                                    obs.standing=obs.standing+1
+                                    if not obs.nearestDistance or
+                                       dist<obs.nearestDistance then
+                                        obs.nearest=target
+                                        obs.nearestDistance=dist
+                                        obs.visible=canSee(actor,target,dist)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return obs
+end
+local function validTarget(actor,target,limit)
+    local d=distance(actor,target)
+    return d and d<=limit and zombie(target) and canSee(actor,target,d),d
+end
+-- Empurrao fisico simplificado: queda via metodo nativo knockDown.
+-- IMPORTANTE: nao comprova animacao de shove e nao inventa isOnFloor.
+-- Queda so ocorre se verificacao de alcance/visao e sorte permitirem.
+function D.shove(actor,target)
+    local ok,d=validTarget(actor,target,Tactics.SHOVE_RANGE)
+    if not ok or fallen(target) then return false,"alvo nao empurravel" end
+    if not target.knockDown then return false,"knockDown indisponivel" end
+    if call(actor,"canPerformHandToHandCombat")==false then
+        return false,"maos ocupadas" end
+    local strength=0
+    if Perks and Perks.Strength then
+        local value=call(actor,"getPerkLevel",Perks.Strength)
+        if finite(value) then strength=math.max(0,math.min(10,value)) end
+    end
+    -- Chance de desequilibrio: o zumbi pode continuar de pe.
+    local chance=math.min(85,50+strength*3)
+    local roll=ZombRand and ZombRand(100)
+    if not finite(roll) then return false,"RNG do jogo indisponivel" end
+    pcall(function() if actor.faceThisObject then actor:faceThisObject(target) end end)
+    if roll>=chance then
+        Core.log("TACTIC shove resisted / zombie remains standing")
+        return true,"resistiu"
+    end
+    local success,err=pcall(function() target:knockDown(false) end)
+    if not success then return false,"knockDown: "..tostring(err) end
+    Core.log("TACTIC shove knockDown invoked; awaiting isOnFloor")
+    return true,"queda solicitada"
+end
+local function moveTo(entry,square,reason)
+    local id=entry.profile.id
+    if not square then
+        entry.navError="tactical square blocked: "..reason
+        return false
+    end
+    if Walking.active(id) then return true end
+    local ok,why=Walking.start(id,entry.actor,square)
+    if not ok then
+        entry.navError="tactical move: "..tostring(why)
+        return false
+    end
+    return true
+end
+local function moveAway(entry,threat,step,reason)
+    if not threat then return false end
+    local tile=Walking.pickRetreat and
+        Walking.pickRetreat(entry.actor,threat,step)
+    return moveTo(entry,tile,reason)
+end
 function D.reset(id)
     local record=D.STATES[id]
     if record and record.entry then cancel(record.entry,"combat reset") end
@@ -153,7 +278,9 @@ end
 function D.clear()
     for id in pairs(D.STATES) do D.reset(id) end
 end
-function D.update(entry)
+-- Called before ALL manual orders on every controller update.
+-- player/team needed to distinguish solo escape from supported group defense.
+function D.update(entry,player,team)
     local id=entry and entry.profile and entry.profile.id
     if not id then return false end
     local actor=entry.actor
@@ -162,8 +289,8 @@ function D.update(entry)
         if old then D.reset(id) end
         return false
     end
-    local target=D.scan(actor)
-    if not target then
+    local o=D.observe(actor,player,team)
+    if o.standing+o.down==0 then
         if old then
             cancel(entry,"ameaça encerrada")
             Orders.evaluate(entry.state,{})
@@ -174,46 +301,71 @@ function D.update(entry)
         return false
     end
     if not old then
-        -- A ordem solicitada permanece requested; só active é interrompido.
         cancel(entry,"autodefesa prioridade maxima")
         Orders.evaluate(entry.state,{selfThreat=true})
-        old={entry=entry,target=target,nextHit=0,lastError=nil,lastChase=0}
+        old={entry=entry,planner=Tactics.new(),lastError=nil,nextAction=0,
+            lastTarget=nil}
         D.STATES[id]=old
         Core.log("DEFENSE "..id.." interrompeu "..entry.state.requested)
     end
-    if old.target~=target then
-        cancel(entry,"troca de zumbi")
-        old.target=target
+    local timestamp=now()
+    -- Evita enfileirar ou atacar a cada frame.
+    if timestamp<old.nextAction then return true end
+    local action,tactic=Tactics.plan(old.planner,o)
+    if not action then return true end
+    local target=action=="PIN" or action=="STOMP" and o.nearestDown or o.nearest
+    if action=="PIN" or action=="STOMP" then target=o.nearestDown end
+    if action=="SHOVE" or action=="STOMP" or action=="BACKSTEP" or
+       action=="FLEE" or action=="PIN" then
+        cancel(entry,"troca de fase combate")
     end
-    local dist=distance(actor,target)
-    if not dist then return true end
-    entry.navStatus="DEFENDING"
-    local currentWeapon=weaponOf(actor)
-    local actualReach=call(currentWeapon,"getMaxRange")
-    if not finite(actualReach) then actualReach=D.REACH end
-    actualReach=math.min(D.REACH,math.max(0.6,actualReach))
-    if dist<=actualReach then
-        cancel(entry,"alcance de ataque")
-        if now()>=old.nextHit then
-            old.nextHit=now()+D.PERIOD_MS
-            local ok,why=D.hit(actor,target)
-            if not ok and old.lastError~=why then
-                old.lastError=why
-                Core.log("DEFENSE "..id..": "..tostring(why))
-            end
+    entry.navStatus=action
+    if action=="SHOVE" then
+        local ok,reason=D.shove(actor,o.nearest)
+        old.nextAction=timestamp+900
+        if not ok and reason~=old.lastError then
+            Core.log("TACTIC "..id.." shove denied: "..tostring(reason))
+            old.lastError=reason
         end
-    elseif dist<=D.MAX_CHASE and not Walking.active(id) then
-        -- Aproximação limitada: nao perseguir zumbis alem do raio imediato.
-        local bx,by,bz=math.floor(target:getX()),
-            math.floor(target:getY()),math.floor(target:getZ())
-        local square=Walking.pickAround(bx,by,bz,actor)
-        if square then
-            local ok,reason=Walking.start(id,actor,square)
-            if not ok and old.lastError~=reason then
-                Core.log("DEFENSE "..id.." aproximação falhou "..tostring(reason))
+    elseif action=="STOMP" then
+        -- Somente golpear no chao SE TODOS os zumbis proximos
+        -- realmente estiverem caidos (nao basta uma ordem bem sucedida).
+        if o.standing==0 and fallen(target) then
+            local ok,reason=D.hit(actor,target)
+            if not ok and reason~=old.lastError then
+                Core.log("TACTIC "..id.." stomp: "..tostring(reason))
                 old.lastError=reason
             end
         end
+        old.nextAction=timestamp+D.PERIOD_MS
+    elseif action=="PIN" then
+        -- O movimento precisa levar o NPC a < 0.92 tile do corpo.
+        -- Nao teletransporta nem muda artificialmente isOnFloor.
+        local sq=target and Walking.pickAround and Walking.pickAround(
+            math.floor(target:getX()),math.floor(target:getY()),
+            math.floor(target:getZ()),actor)
+        moveTo(entry,sq,"PIN")
+        old.nextAction=timestamp+800
+    elseif action=="BACKSTEP" then
+        moveAway(entry,o.nearest,2,"BACKSTEP")
+        old.nextAction=timestamp+950
+    elseif action=="FLEE" then
+        moveAway(entry,o.nearest,4,"FLEE")
+        old.nextAction=timestamp+1100
+    elseif action=="APPROACH" then
+        local z=o.nearest
+        local sq=z and Walking.pickAround and Walking.pickAround(
+            math.floor(z:getX()),math.floor(z:getY()),math.floor(z:getZ()),actor)
+        moveTo(entry,sq,"APPROACH")
+        old.nextAction=timestamp+850
+    else
+        old.nextAction=timestamp+650
+    end
+    if old.lastLogged~=action or old.lastTactic~=tactic then
+        Core.log("TACTIC "..id.." "..tactic.."/"..action..
+            " standing="..o.standing.." down="..o.down..
+            " ally="..tostring(o.ally))
+        old.lastLogged,old.lastTactic=action,tactic
     end
     return true
 end
