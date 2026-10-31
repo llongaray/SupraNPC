@@ -1,4 +1,12 @@
 # Changelog — SupraNPC
+## 0.1.21-dev — 2026-10-31
+
+- Novo `VoiceHotkey.lua`: tecla configurável em Opções > Teclas, inicialmente desvinculada para não afetar atalhos padrão, com ciclo de pressionar/soltar e contrato para um backend de reconhecimento.
+- HUD com botão `?` e legenda dos comandos reais; entrada por texto continua disponível.
+- Frases PT-BR direcionadas por nome ou `Todos`; balões de confirmação das ordens agora interrompem falas antigas para responder imediatamente.
+- Testes automatizados de hotkey, traduções e CI Lua 5.1.
+- **Ainda não há reconhecimento de microfone**: a Lua padrão da B42 não fornece transcrição. O HUD exibe `MIC SEM STT`, e uma tecla sem motor informa indisponibilidade.
+
 ## 0.1.20-dev — 2026-10-31
 
 - Novo `StancePolicy.lua`: PASSIVE evita combate (FLEE diante de qualquer zumbi visível dentro de 9 tiles); DEFENSIVE prefere SHOVE/SWING/PIN/STOMP e recua apenas diante de risco elevado; AGGRESSIVE persegue até 12 tiles, prioriza eliminar zumbis, nunca opta por fuga automática devido a desvantagem.
