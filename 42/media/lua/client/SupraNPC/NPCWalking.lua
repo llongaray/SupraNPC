@@ -3,6 +3,7 @@
 -- Nunca criar zumbis, reposicionar NPC, controlar camera ou entrar na fila do jogador.
 local Core = require("SupraNPC/Constants")
 local Adapter = require("SupraNPC/SpawnAdapter")
+local Navigation = require("SupraNPC/NPCNavigation")
 pcall(require, "TimedActions/WalkToTimedAction")
 pcall(require, "TimedActions/ISTimedActionQueue")
 local W = { walks = {}, serial = 0, timeoutMs = 30000, noProgressMs = 6000 }
@@ -86,10 +87,19 @@ function W.pickRetreat(actor,threat,steps)
             if projection>0.6 and ox*ox+oy*oy<=steps*steps then
                 local square=call(cell,"getGridSquare",bx+ox,by+oy,az)
                 if W.free(square,actor) then
-                    local away=(bx+ox+0.5-zx)^2+(by+oy+0.5-zy)^2
-                    local sideways=math.abs(ox*dy-oy*dx)
-                    local value=away-sideways*0.6
-                    if value>score then best,score=square,value end
+                    -- Safe retreat uses the same loaded, wall-aware planner.
+                    -- Never open a portal while fleeing; choose a walkable
+                    -- first step only if an alternative route exists.
+                    local md=call(actor,"getModData")
+                    local ownerId=md and md.SupraNPC_ID or ""
+                    local waypoint=Navigation.next(actor,bx+ox+0.5,
+                        by+oy+0.5,az,ownerId,W.free,0.70,true)
+                    if waypoint then
+                        local away=(bx+ox+0.5-zx)^2+(by+oy+0.5-zy)^2
+                        local sideways=math.abs(ox*dy-oy*dx)
+                        local value=away-sideways*0.6
+                        if value>score then best,score=waypoint,value end
+                    end
                 end
             end
         end
