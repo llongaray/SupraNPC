@@ -200,13 +200,18 @@ function D.update(entry,player,team)
  -- Threat memory prevents FOLLOW resuming while escaping a group
  -- simply because the NPC turned away from the vision cone.
  local memory=false
- if old and old.retreatThreat and zombie(old.retreatThreat) then
-    local remembered=Perception.distance(actor,old.retreatThreat)
-    memory=remembered~=nil and remembered<10
+ local rememberedThreat=nil
+ if old and type(old.retreatThreats)=="table" then
+    for _,z in ipairs(old.retreatThreats) do
+       if zombie(z) then
+          local d=Perception.distance(actor,z)
+          if d and d<10 then memory=true;rememberedThreat=z;break end
+       end
+    end
  end
  if memory then
     danger.retreat=true
-    if not obs.firstVisible then obs.firstVisible=old.retreatThreat end
+    if not obs.firstVisible then obs.firstVisible=rememberedThreat end
  end
  local engage=near>0 or (obs.alertDistance and obs.alertDistance<=8)
              or (danger.retreat and ((obs.alertDistance and
@@ -233,10 +238,16 @@ function D.update(entry,player,team)
  end
  Orders.evaluate(entry.state,{selfThreat=not danger.retreat,mustRetreat=danger.retreat})
  if danger.retreat then
-    old.retreatThreat=obs.nearest or obs.firstVisible or
-       obs.nearestDown or old.retreatThreat
- else old.retreatThreat=nil end
+    if type(obs.visibleTargets)=="table" and #obs.visibleTargets>=3 then
+        old.retreatThreats=obs.visibleTargets
+    elseif not old.retreatThreats then
+        old.retreatThreats={obs.nearest or obs.firstVisible or obs.nearestDown}
+    end
+ else old.retreatThreats=nil end
  local nowMs=now()
+ if type(health)=="number" and health<55 then
+    Speech.npcAlert(actor,"HELP")
+ end
  if danger.retreat and not old.warnedRetreat then
     Speech.npcAlert(actor,danger.unarmed and "UNARMED" or "HORDE",true)
     old.warnedRetreat=true
