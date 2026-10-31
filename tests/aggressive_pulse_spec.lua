@@ -34,10 +34,17 @@ D.STATES.npc1={entry=entry,target=z}
 assert(D.pulse(entry,{}, {})==true)
 assert(calls==1 and walks==1 and not moving)
 assert(entry.navStatus=="SHOVE")
-ms=1100
+-- Decisions are made every tick; a 35ms handoff after an accepted
+-- attack is only to let the engine switch into animation.
+ms=1020
 assert(D.pulse(entry,{}, {})==false and calls==1)
-ms=1260
+ms=1035
 assert(D.pulse(entry,{}, {})==true and calls==2)
+-- A native attack still playing must never be interrupted by a new one.
+npc.isAttacking=function() return true end
+ms=1040
+assert(D.pulse(entry,{}, {})==false and calls==2)
+npc.isAttacking=function() return false end
 z.dead=true
 ms=1600
 assert(D.pulse(entry,{}, {})==false and calls==2)
