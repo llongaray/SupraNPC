@@ -13,8 +13,18 @@ local function descriptor(first, last)
     function d:setSurname(s) self.last = s end
     function d:isFemale() return self.female end
     function d:getHumanVisual()
-        return { getHairModel = function() return "Short" end,
-                 getBeardModel = function() return "None" end }
+        return {
+            getHairModel = function() return "Short" end,
+            getBeardModel = function() return "None" end,
+            getSkinTextureIndex = function() return 2 end,
+            getHairColor = function()
+                return {
+                    getRedFloat = function() return 0.25 end,
+                    getGreenFloat = function() return 0.5 end,
+                    getBlueFloat = function() return 0.75 end
+                }
+            end
+        }
     end
     function d:getCharacterProfession()
         return { getName = function() return "unemployed" end }
@@ -91,6 +101,10 @@ assert(Flow.onMainClick(create, button, 0, 0, original))
 assert(originalCalls == 0 and Flow.session.index == 2)
 assert(Core.pendingRoster.profiles[1].firstName == "Ana")
 assert(Core.pendingRoster.profiles[1].complete == true)
+assert(Core.pendingRoster.profiles[1].appearance.skinIndex == 2)
+assert(Core.pendingRoster.profiles[1].appearance.hairColor.r == 0.25)
+assert(Core.pendingRoster.profiles[1].appearance.hairColor.g == 0.5)
+assert(Core.pendingRoster.profiles[1].appearance.hairColor.b == 0.75)
 assert(Core.pendingRoster.profiles[2].complete == false)
 assert(create.forenameEntry:getText() == "NPC")
 assert(create.surnameEntry:getText() == "2")
