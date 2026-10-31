@@ -107,9 +107,20 @@ function Controller.stance(id,stance)
     local entry=Controller.entries[id]
     if not entry then return false,"NPC nao registrado" end
     if not STANCES[stance] then return false,"Postura invalida" end
-    entry.stance=stance
+    if entry.stance~=stance then
+        -- Changing stance is an immediate policy switch. Old retreat
+        -- planner, action cooldown and walk target cannot be reused.
+        Defense.reset(id)
+        Orders.evaluate(entry.state,{})
+        entry.retreating=false
+        entry.navStatus="READY"
+        entry.navError=nil
+        entry.nextRequest=0
+        entry.anchor=nil
+        entry.stance=stance
+    end
     persist(entry)
-    Core.log("STANCE "..id.." "..stance.." intercept range updated")
+    Core.log("STANCE "..id.." "..stance.." combat policy updated")
     return true
 end
 local function fail(entry,reason)
