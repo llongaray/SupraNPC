@@ -27,6 +27,27 @@ local invalid = Roster.new(1)
 invalid.profiles[1] = nil
 assert(not Roster.validate(invalid))
 
+-- Perfis precisam estar individualmente completos antes do primeiro spawn.
+assert(not Roster.validate(team, true))
+team.profiles[1].complete = true
+team.profiles[2].complete = true
+team.profiles[3].complete = true
+assert(Roster.validate(team, true))
+
+local duplicate = Roster.copy(team)
+duplicate.profiles[2].id = duplicate.profiles[1].id
+assert(not Roster.validate(duplicate, true))
+
+local badSkill = Roster.copy(team)
+badSkill.profiles[1].skills.Fitness = 99
+assert(not Roster.validate(badSkill, true))
+badSkill.profiles[1].skills.Fitness = 4.5
+assert(not Roster.validate(badSkill, true))
+
+local badName = Roster.copy(team)
+badName.profiles[1].firstName = "  "
+assert(not Roster.validate(badName, true))
+
 local state = Orders.new("FOLLOW")
 assert(state.active == "FOLLOW")
 assert(Orders.set(state, "GUARD"))
