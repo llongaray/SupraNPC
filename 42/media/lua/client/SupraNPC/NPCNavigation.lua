@@ -131,7 +131,7 @@ end
 local dirs={{1,0},{0,1},{-1,0},{0,-1}}
 -- Bounded search: only loaded squares, no diagonals through corners.
 -- Returns a one-tile waypoint; retries the route after an opened door.
-function N.next(actor,tx,ty,tz,id,free,range)
+function N.next(actor,tx,ty,tz,id,free,range,avoidPortals)
  if not actor or not getCell or not valid(tx) or not valid(ty) or
     not valid(tz) or type(free)~="function" then return nil,"invalid goal" end
  local cell=getCell()
@@ -171,7 +171,7 @@ function N.next(actor,tx,ty,tz,id,free,range)
        local sq=call(cell,"getGridSquare",x,y,z)
        if sq and (free(sq,actor) or
           (math.floor(tx)==x and math.floor(ty)==y)) then
-         local yes,e=N.canCross(node.sq,sq,id,true)
+         local yes,e=N.canCross(node.sq,sq,id,not avoidPortals)
          if yes then
            last=last+1
            q[last]={sq=sq,x=x,y=y,parent=node,portal=e}
@@ -181,7 +181,7 @@ function N.next(actor,tx,ty,tz,id,free,range)
    end
  end
  if not reached and math.sqrt((bx+0.5-tx)^2+(by+0.5-ty)^2)<limit-2 then
-    N.tryNearbyWindow(actor,tx,ty,id)
+    if not avoidPortals then N.tryNearbyWindow(actor,tx,ty,id) end
     return nil,"no accessible route"
  end
  if not best or best==q[1] then
