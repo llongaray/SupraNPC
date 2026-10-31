@@ -99,6 +99,12 @@ function A.execute(actor,target,kind,player,team)
     if actor.setAuthorizedHandToHand then
         actor:setAuthorizedHandToHand(true)
     end
+    if actor.setAuthorizeShoveStomp then
+        actor:setAuthorizeShoveStomp(true)
+    end
+    if actor.setAuthorizeMeleeAction then
+        actor:setAuthorizeMeleeAction(true)
+    end
     -- Short range/ground use normal attack selection. For a close standing
     -- zombie, request shove explicitly; do not simulate knockDown().
     if actor.setDoShove then actor:setDoShove(kind=="SHOVE") end
@@ -106,11 +112,21 @@ function A.execute(actor,target,kind,player,team)
  end)
  -- Reset forceShove so the next weapon swing/ground strike uses vanilla
  -- range logic. No artificial zombie health modifications.
- if actor.setDoShove then pcall(function() actor:setDoShove(false) end) end
+ -- Keep shove intent until the engine consumes it. Resetting in the
+ -- same Lua call caused the native animation to read shove=false.
+ -- It is cleared on the next normal swing or after combat ends.
+ if not ok or reason~=true then
+    if actor.setDoShove then pcall(function() actor:setDoShove(false) end) end
+ end
  if not ok then return false,"DoAttack error: "..tostring(reason) end
  if reason~=true then return false,"DoAttack rejected: "..tostring(reason) end
  -- Detailed per-tick combat feedback is aggregated in NPCDefense.pulse;
  -- avoid generating hundreds of identical log lines per fight.
  return true,"native attack requested"
+end
+function A.release(actor)
+ if actor and actor.setDoShove then
+    pcall(function() actor:setDoShove(false) end)
+ end
 end
 return A
