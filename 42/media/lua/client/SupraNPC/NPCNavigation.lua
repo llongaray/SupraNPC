@@ -201,7 +201,11 @@ function N.next(actor,tx,ty,tz,id,free,range,avoidPortals,avoidZombies)
  local function safeTile(x,y)
   if not danger then return true end
   for _,z in ipairs(danger) do
-   if (z.x-x-0.5)^2+(z.y-y-0.5)^2<2.0^2 then return false end
+   local distance=(z.x-x-0.5)^2+(z.y-y-0.5)^2
+   local initial=(z.x-ax)^2+(z.y-ay)^2
+   -- If already surrounded, allow steps that INCREASE distance; otherwise
+   -- the NPC would be trapped by its own avoidance mask.
+   if distance<4 and distance<=initial+0.20 then return false end
   end
   return true
  end
