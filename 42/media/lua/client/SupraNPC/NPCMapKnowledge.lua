@@ -30,9 +30,15 @@ function M.read()
  local notes={}
  for i=0,math.min(math.max(0,count),500)-1 do
    local symbol=call(s,"getSymbolByIndex",i)
-   if symbol and call(symbol,"isText")~=false then
-     local text=call(symbol,"getUntranslatedText") or
-         call(symbol,"getTranslatedText") or call(symbol,"getText")
+   if symbol then
+     local text
+     if call(symbol,"isTexture")==true then
+        local key=call(symbol,"getSymbolID")
+        if type(key)=="string" and #key<=80 then text="ICON:"..key end
+     else
+        text=call(symbol,"getUntranslatedText") or
+            call(symbol,"getTranslatedText") or call(symbol,"getText")
+     end
      local x=call(symbol,"getWorldX")
      local y=call(symbol,"getWorldY")
      if type(text)=="string" and type(x)=="number" and
