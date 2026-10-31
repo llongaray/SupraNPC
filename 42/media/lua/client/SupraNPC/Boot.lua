@@ -8,9 +8,9 @@ local Follow = require("SupraNPC/Follow")
 
 local function onNewGame(player, square)
     if not Core.isSolo() or not player or not Core.pendingRoster then return end
-    local valid, reason = Roster.validate(Core.pendingRoster)
+    local valid, reason = Roster.validate(Core.pendingRoster, true)
     if not valid then
-        Core.log("Equipe invalida: " .. tostring(reason))
+        Core.log("Equipe incompleta nao sera persistida: " .. tostring(reason))
         return
     end
     local modData = player:getModData()
@@ -21,7 +21,13 @@ local function onNewGame(player, square)
         spawnAttempted = false,
         spawnStatus = "awaiting_validation"
     }
-    Core.log("Nova partida: " .. tostring(Core.pendingRoster.count) .. " companheiros planejados.")
+    Core.log("Nova partida: " .. tostring(Core.pendingRoster.count) .. " companheiros configurados.")
+    for i = 1, Core.pendingRoster.count do
+        local profile = Core.pendingRoster.profiles[i]
+        Core.log("Ficha " .. i .. ": " .. tostring(profile.firstName) .. " " ..
+            tostring(profile.lastName) .. " | profissao=" .. tostring(profile.profession) ..
+            " | traits=" .. tostring(#profile.traits))
+    end
     Core.pendingRoster = nil
 end
 
@@ -30,7 +36,12 @@ local function onGameStart()
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
     if not player or not player.getModData then return end
     local data = player:getModData().SupraNPC
-    if not data or not data.roster then return end
+    if not data or not data.roster then
+        Core.log("OnGameStart: nao ha equipe SupraNPC no save. Verifique OnNewGame no console.txt.")
+        return
+    end
+    Core.log("OnGameStart: equipe detectada no modData (quantidade " ..
+        tostring(data.roster.count) .. ").")
     if data.roster.count == 0 then
         data.spawnStatus = "no_companions"
         return
