@@ -1,4 +1,12 @@
 # Changelog — SupraNPC
+## 0.1.23-dev — 2026-10-31
+
+- Fix do erro recorrente `ArrayIndexOutOfBoundsException: Index 10003 out of bounds for length 256` reportado em `console(3).txt`. Chamadas a `Keyboard.getKeyName` com ID virtual causavam excecoes Java por frame dentro de `NPCUI.render`.
+- `VoiceHotkey.getKey()` rejeita teclas que nao sejam codigos fisicos inteiros entre 1 e 255; `VoiceHotkey.keyLabel()` apresenta `RECONFIGURAR` para valor invalido e armazena em cache o nome da tecla valida.
+- Protecao tambem no evento de teclado, evitando iniciar o push-to-talk com codigos virtuais invalidos.
+- Teste de regressao valida `10003`, `256`, `-1`, valor fracionario, cache e bind valido.
+- Nenhuma alteracao no sistema de combate; microfone/STT ainda nao esta integrado.
+
 ## 0.1.22-dev — 2026-10-31
 
 - Correção de postura AGGRESSIVE após teste em jogo: 96% -> 55% -> 0% de saúde, NPC priorizava SHOVE/APPROACH mas não sustentava combate.
