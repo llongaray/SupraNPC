@@ -49,10 +49,13 @@ function I.restoreOwner(candidate)
  local owner=I.getOwner(candidate)
  if not owner then return false end
  if IsoPlayer then
-    if IsoPlayer.setInstance then
+    -- Keep 0th local-player slot fixed; only write when truly misplaced.
+    if IsoPlayer.setInstance and
+       (not IsoPlayer.getInstance or call(IsoPlayer,"getInstance")~=owner) then
         pcall(function() IsoPlayer.setInstance(owner) end)
     end
-    if IsoPlayer.setLocalPlayer then
+    if IsoPlayer.setLocalPlayer and
+       (not IsoPlayer.getPlayer or call(IsoPlayer,"getPlayer",0)~=owner) then
         pcall(function() IsoPlayer.setLocalPlayer(0,owner) end)
     end
  end
