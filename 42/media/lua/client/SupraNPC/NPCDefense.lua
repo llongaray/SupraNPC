@@ -313,7 +313,7 @@ function D.update(entry,player,team)
     if timestamp<old.nextAction then return true end
     local action,tactic=Tactics.plan(old.planner,o)
     if not action then return true end
-    local target=action=="PIN" or action=="STOMP" and o.nearestDown or o.nearest
+    local target=o.nearest
     if action=="PIN" or action=="STOMP" then target=o.nearestDown end
     if action=="SHOVE" or action=="STOMP" or action=="BACKSTEP" or
        action=="FLEE" or action=="PIN" then
