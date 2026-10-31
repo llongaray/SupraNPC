@@ -2,6 +2,7 @@
 -- Nenhuma chamada ao ISHealthPanel vanilla: nao tratar NPC como segundo player.
 require("ISUI/ISPanel")
 require("ISUI/ISButton")
+require("ISUI/ISTextEntryBox")
 require("ISUI/ISContextMenu")
 pcall(require, "ISUI/ISUI3DModel")
 -- ISNewHealthPanel e o mesmo painel corporal usado pelo ISHealthPanel
@@ -12,6 +13,7 @@ local Adapter = require("SupraNPC/SpawnAdapter")
 local Health = require("SupraNPC/Health")
 local Controller = require("SupraNPC/NPCController")
 local Speech = require("SupraNPC/NPCSpeech")
+local VoiceCommands = require("SupraNPC/VoiceCommands")
 local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil,
     feedback = nil, feedbackTicks = 0 }
 
@@ -207,14 +209,30 @@ function HUD.openMenu(id)
     stances:addOption("Passiva", nil, function() dispatch(id, "STANCE", "PASSIVE") end)
     stances:addOption("Defensiva", nil, function() dispatch(id, "STANCE", "DEFENSIVE") end)
     stances:addOption("Agressiva", nil, function() dispatch(id, "STANCE", "AGGRESSIVE") end)
-    local note = m:addOption("Postura so registra preferencia; combate pendente",nil,nil)
-    note.notAvailable = true
+    -- A postura agora influencia o raio de interceptacao (2.2/5/9 tiles).
+end
+
+function HUD.sendVoice(utterance)
+    local roster=HUD.roster
+    local parsed,reason=VoiceCommands.parse(utterance,
+        roster and roster.profiles)
+    if not parsed then
+        HUD.feedback={text="Voz: "..tostring(reason)}
+        HUD.feedbackTicks=0
+        Core.log("VOICE rejected: "..tostring(reason))
+        return false,reason
+    end
+    for _,id in ipairs(parsed.targets) do
+        dispatch(id,parsed.cmd,parsed.option)
+    end
+    Core.log("VOICE command "..parsed.cmd.." targets="..#parsed.targets)
+    return true
 end
 
 local Sidebar = ISPanel:derive("SupraNPCSidebar")
 function Sidebar:new(roster)
     local count = #roster.profiles
-    local o = ISPanel:new(74, 160, 271, 37 + count * 76)
+    local o = ISPanel:new(74, 160, 271, 111 + count * 76)
     setmetatable(o, self)
     self.__index = self
     o.roster = roster
@@ -262,6 +280,25 @@ function Sidebar:createChildren()
         menuButton:instantiate()
         self:addChild(menuButton)
     end
+    local base=33 + #self.roster.profiles*76
+    self.voiceTitle="COMANDO DE VOZ (WIN+H)"
+    self.voiceEntry=ISTextEntryBox:new("",8,base+19,188,26)
+    self.voiceEntry:initialise()
+    self.voiceEntry:instantiate()
+    self:addChild(self.voiceEntry)
+    local send=ISButton:new(202,base+19,60,26,"Enviar",self,self.onVoice)
+    send:initialise()
+    send:instantiate()
+    self:addChild(send)
+    self.voiceButton=send
+end
+function Sidebar:onVoice()
+    if not self.voiceEntry then return end
+    local utterance=self.voiceEntry:getText()
+    if utterance and utterance~="" then
+        HUD.sendVoice(utterance)
+        self.voiceEntry:setText("")
+    end
 end
 function Sidebar:onHealth(button) HUD.showHealth(button.npcId) end
 function Sidebar:onMenu(button) HUD.openMenu(button.npcId) end
@@ -273,6 +310,8 @@ function Sidebar:render()
         if HUD.feedbackTicks > 400 then HUD.feedback = nil end
     end
     self:drawText("SUPRANPC - EQUIPE", 9, 8,0.4,0.9,0.45,1,UIFont.Small)
+    self:drawText(self.voiceTitle or "COMANDO DE VOZ (WIN+H)",
+       9,33 + #self.roster.profiles*76,0.7,0.85,0.72,1,UIFont.Small)
     for i,profile in ipairs(self.roster.profiles) do
         if self.refreshCount % 35 == 1 or not self.healthCache[profile.id] then
             self.healthCache[profile.id] = Health.inspect(Adapter.get(profile.id), profile)
