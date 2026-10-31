@@ -49,14 +49,25 @@ function I.restoreOwner(candidate)
  local owner=I.getOwner(candidate)
  if not owner then return false end
  if IsoPlayer then
-    -- Keep 0th local-player slot fixed; only write when truly misplaced.
-    if IsoPlayer.setInstance and
-       (not IsoPlayer.getInstance or call(IsoPlayer,"getInstance")~=owner) then
+    -- Static Java methods use dot syntax; do NOT pass IsoPlayer as self.
+    local active,local0=nil,nil
+    if IsoPlayer.getInstance then
+        local ok,res=pcall(function() return IsoPlayer.getInstance() end)
+        if ok then active=res end
+    end
+    if IsoPlayer.getPlayer then
+        local ok,res=pcall(function() return IsoPlayer.getPlayer(0) end)
+        if ok then local0=res end
+    end
+    local wasHijacked=local0~=nil and local0~=owner
+    if IsoPlayer.setInstance and active~=owner then
         pcall(function() IsoPlayer.setInstance(owner) end)
     end
-    if IsoPlayer.setLocalPlayer and
-       (not IsoPlayer.getPlayer or call(IsoPlayer,"getPlayer",0)~=owner) then
+    if IsoPlayer.setLocalPlayer and local0~=owner then
         pcall(function() IsoPlayer.setLocalPlayer(0,owner) end)
+    end
+    if wasHijacked and type(setPlayerMouse)=="function" then
+        pcall(setPlayerMouse,owner)
     end
  end
  if IsoCamera and IsoCamera.setCameraCharacter then
