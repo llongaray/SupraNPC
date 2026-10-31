@@ -47,6 +47,19 @@ function T.plan(state,o)
        state.last~="SHOVE" then
        action="SHOVE" -- one emergency push to create space
     else action="FLEE" end
+ elseif stance=="AGGRESSIVE" and standing>0 then
+    -- No defensive SHOVE -> BACKSTEP -> WAIT loop. Maintain offensive
+    -- pressure; the native combat adapter owns the animation lockout.
+    tactic="SUSTAINED_ATTACK"
+    if good(dist) and o.visible then
+       if dist<=1.04 then action="SHOVE"
+       elseif o.melee and dist<=1.85 then action="SWING"
+       elseif dist<=1.42 then action="SHOVE"
+       elseif dist<=(o.engageRange or 12) then action="APPROACH"
+       end
+    elseif good(dist) and dist<=(o.engageRange or 12) then
+       action="APPROACH"
+    end
  elseif standing>=3 or state.groupCombat then
     tactic="SUPPORTED"
     if state.last=="SHOVE" then action="BACKSTEP"
