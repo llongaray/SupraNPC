@@ -13,6 +13,7 @@ local Adapter = require("SupraNPC/SpawnAdapter")
 local Health = require("SupraNPC/Health")
 local Controller = require("SupraNPC/NPCController")
 local Speech = require("SupraNPC/NPCSpeech")
+local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 local VoiceCommands = require("SupraNPC/VoiceCommands")
 local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil,
     feedback = nil, feedbackTicks = 0 }
@@ -198,6 +199,8 @@ function HUD.openMenu(id)
     orders:addOption("Seguir o jogador", nil,
         function() dispatch(id, "FOLLOW") end)
     orders:addOption("Aguardar aqui", nil, function() dispatch(id, "IDLE") end)
+    orders:addOption("Retornar para base", nil,
+        function() dispatch(id, "RETURN_BASE") end)
     orders:addOption("Guardar esta posicao", nil,
         function() dispatch(id, "GUARD", "NPC") end)
     orders:addOption("Guardar ponto do jogador", nil,
@@ -232,7 +235,7 @@ end
 local Sidebar = ISPanel:derive("SupraNPCSidebar")
 function Sidebar:new(roster)
     local count = #roster.profiles
-    local o = ISPanel:new(74, 160, 271, 111 + count * 76)
+    local o = ISPanel:new(74, 160, 271, 131 + count * 76)
     setmetatable(o, self)
     self.__index = self
     o.roster = roster
@@ -316,6 +319,15 @@ function Sidebar:render()
     self:drawText("SUPRANPC - EQUIPE", 9, 8,0.4,0.9,0.45,1,UIFont.Small)
     self:drawText(self.voiceTitle or "COMANDO DE VOZ (WIN+H)",
        9,33 + #self.roster.profiles*76,0.7,0.85,0.72,1,UIFont.Small)
+    local player=getSpecificPlayer and getSpecificPlayer(0)
+    local knowledge=MapKnowledge.get(player)
+    local markCount=knowledge and knowledge.notes and #knowledge.notes or 0
+    local base=knowledge and knowledge.base
+    local subtitle=base and
+       ("Mapa: BASE "..base.defined.." | "..markCount.." marcacoes") or
+       ("Mapa: sem BASE | "..markCount.." marcacoes")
+    self:drawText(subtitle,9,33 + #self.roster.profiles*76+52,
+        0.75,0.87,0.72,1,UIFont.Small)
     for i,profile in ipairs(self.roster.profiles) do
         if self.refreshCount % 35 == 1 or not self.healthCache[profile.id] then
             self.healthCache[profile.id] = Health.inspect(Adapter.get(profile.id), profile)
