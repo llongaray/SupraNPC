@@ -35,20 +35,38 @@ function PTT.registerBinding()
         end
     end
 end
-function PTT.getKey()
+-- Keyboard.getKeyName indexes a fixed 256-element native array (0..255).
+-- Some game/keybinding states expose synthetic action IDs (e.g. 10003)
+-- instead of physical keycodes. Do not pass these to any LWJGL method:
+-- a Java exception is logged even when Lua wraps the call in pcall().
+local function physicalKey(key)
+    return type(key)=="number" and key==key and key%1==0 and
+        key>=1 and key<=255
+end
+local function rawBinding()
     local c=gameCore()
     if not c or not c.getKey then return 0 end
     local ok,k=pcall(function() return c:getKey(PTT.KEY_ID) end)
     return ok and type(k)=="number" and k or 0
 end
+function PTT.getKey()
+    local key=rawBinding()
+    return physicalKey(key) and key or 0
+end
+local lastLabelKey,lastLabel=nil,nil
 function PTT.keyLabel()
-    local k=PTT.getKey()
-    if k==0 then return "SEM TECLA" end
+    local key=rawBinding()
+    if key==0 then return "SEM TECLA" end
+    if not physicalKey(key) then return "RECONFIGURAR" end
+    -- Cache results for each binding; render() is invoked every frame.
+    if lastLabelKey==key and lastLabel then return lastLabel end
+    local label=nil
     if Keyboard and Keyboard.getKeyName then
-        local ok,label=pcall(function() return Keyboard.getKeyName(k) end)
-        if ok and label then return tostring(label) end
+        local ok,result=pcall(function() return Keyboard.getKeyName(key) end)
+        if ok and type(result)=="string" and result~="" then label=result end
     end
-    return tostring(k)
+    lastLabelKey,lastLabel=key,label or ("TECLA "..tostring(key))
+    return lastLabel
 end
 function PTT.setHandler(handler)
     PTT.handler=type(handler)=="function" and handler or nil
