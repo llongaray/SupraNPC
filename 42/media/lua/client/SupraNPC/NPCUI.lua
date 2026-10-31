@@ -298,10 +298,10 @@ function VoiceHelp:render()
     end
     self:drawRect(13,291,self.width-26,1,0.45,0.65,0.7,0.65)
     self:drawText("Atalho PTT: Opcoes > Teclas > SupraNPC",15,301,1,0.8,0.5,1,UIFont.Small)
-    self:drawText("Tecla atual: "..VoiceHotkey.keyLabel().." | microfone: "..
-        (VoiceHotkey.recognizer and VoiceHotkey.state or "SEM STT"),15,322,
+    self:drawText("Tecla atual: "..VoiceHotkey.keyLabel().." | transcricao: "..
+        (VoiceHotkey.recognizer and VoiceHotkey.state or "STT PENDENTE"),15,322,
         0.84,0.89,0.88,1,UIFont.Small)
-    self:drawText("Sem STT instalado, use o campo de texto do painel.",15,343,
+    self:drawText("STT pendente; microfone nao e testado pelo mod.",15,343,
         0.8,0.72,0.66,1,UIFont.Small)
 end
 function HUD.showVoiceHelp()
@@ -419,7 +419,7 @@ function Sidebar:render()
     local baseY=33 + #self.roster.profiles*76
     self:drawText(subtitle,9,baseY+52,0.75,0.87,0.72,1,UIFont.Small)
     self:drawText("PTT: "..VoiceHotkey.keyLabel().. " | "..
-        (VoiceHotkey.recognizer and VoiceHotkey.state or "MIC SEM STT"),
+        (VoiceHotkey.recognizer and VoiceHotkey.state or "STT PENDENTE"),
         9,baseY+72,0.84,0.78,0.56,1,UIFont.Small)
     for i,profile in ipairs(self.roster.profiles) do
         if self.refreshCount % 35 == 1 or not self.healthCache[profile.id] then
