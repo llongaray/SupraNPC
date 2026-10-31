@@ -15,7 +15,8 @@ local Controller = require("SupraNPC/NPCController")
 local Speech = require("SupraNPC/NPCSpeech")
 local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 local VoiceCommands = require("SupraNPC/VoiceCommands")
-local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil,
+local VoiceHotkey = require("SupraNPC/VoiceHotkey")
+local HUD = { roster = nil, rosterPanel = nil, healthPanel = nil, helpPanel = nil,
     feedback = nil, feedbackTicks = 0 }
 
 local function mouseX() return type(getMouseX) == "function" and getMouseX() or 250 end
@@ -232,10 +233,80 @@ function HUD.sendVoice(utterance)
     return true
 end
 
+VoiceHotkey.setHandler(function(transcript)
+    return HUD.sendVoice(transcript)
+end)
+VoiceHotkey.setFeedback(function(message)
+    HUD.feedback={text=tostring(message)}
+    HUD.feedbackTicks=0
+end)
+
+-- Ajuda integrada: mostra comandos implementados, nao promessas de funcoes
+-- futuras como loot e limpar uma regiao do mapa.
+local VoiceHelp=ISPanel:derive("SupraNPCVoiceHelp")
+function VoiceHelp:new()
+    local o=ISPanel:new(350,145,492,366)
+    setmetatable(o,self)
+    self.__index=self
+    o.backgroundColor={r=0.045,g=0.06,b=0.075,a=0.97}
+    o.borderColor={r=0.35,g=0.62,b=0.46,a=1}
+    o.moveWithMouse=true
+    return o
+end
+function VoiceHelp:initialise() ISPanel.initialise(self) end
+function VoiceHelp:createChildren()
+    ISPanel.createChildren(self)
+    local x=ISButton:new(self.width-38,8,29,24,"X",self,self.onClose)
+    x:initialise()
+    x:instantiate()
+    self:addChild(x)
+end
+function VoiceHelp:onClose()
+    self:removeFromUIManager()
+    if HUD.helpPanel==self then HUD.helpPanel=nil end
+end
+function VoiceHelp:render()
+    ISPanel.render(self)
+    local target="Yong"
+    if HUD.roster and HUD.roster.profiles and HUD.roster.profiles[1] then
+        target=HUD.roster.profiles[1].firstName or target
+    end
+    self:drawText("SUPRANPC - COMANDOS DA EQUIPE",14,12,0.55,0.95,0.62,1,UIFont.Medium)
+    self:drawText("Diga o nome do NPC ou 'Todos' para a equipe:",14,43,0.85,0.88,0.85,1,UIFont.Small)
+    local examples={
+        target..", me segue",target..", aguarde aqui",
+        target..", guarda aqui",target..", guarda minha posicao",
+        target..", volta para base",target..", postura passiva",
+        target..", postura defensiva",target..", postura agressiva",
+        "Todos, me sigam"
+    }
+    for i,phrase in ipairs(examples) do
+        self:drawText(phrase,20,65+(i-1)*24,0.92,0.92,0.78,1,UIFont.Small)
+    end
+    self:drawRect(13,291,self.width-26,1,0.45,0.65,0.7,0.65)
+    self:drawText("Atalho PTT: Opcoes > Teclas > SupraNPC",15,301,1,0.8,0.5,1,UIFont.Small)
+    self:drawText("Tecla atual: "..VoiceHotkey.keyLabel().." | microfone: "..
+        (VoiceHotkey.recognizer and VoiceHotkey.state or "SEM STT"),15,322,
+        0.84,0.89,0.88,1,UIFont.Small)
+    self:drawText("Sem STT instalado, use o campo de texto do painel.",15,343,
+        0.8,0.72,0.66,1,UIFont.Small)
+end
+function HUD.showVoiceHelp()
+    if HUD.helpPanel then
+        HUD.helpPanel:bringToTop()
+        return
+    end
+    local help=VoiceHelp:new()
+    help:initialise()
+    help:instantiate()
+    help:addToUIManager()
+    HUD.helpPanel=help
+end
+
 local Sidebar = ISPanel:derive("SupraNPCSidebar")
 function Sidebar:new(roster)
     local count = #roster.profiles
-    local o = ISPanel:new(74, 160, 271, 131 + count * 76)
+    local o = ISPanel:new(74, 160, 271, 171 + count * 76)
     setmetatable(o, self)
     self.__index = self
     o.roster = roster
@@ -284,7 +355,12 @@ function Sidebar:createChildren()
         self:addChild(menuButton)
     end
     local base=33 + #self.roster.profiles*76
-    self.voiceTitle="COMANDO DE VOZ (WIN+H)"
+    self.voiceTitle="COMANDOS DA EQUIPE"
+    local help=ISButton:new(217,base-3,46,20,"?",self,self.onHelp)
+    help:initialise()
+    help:instantiate()
+    self:addChild(help)
+    self.helpButton=help
     self.voiceEntry=ISTextEntryBox:new("",8,base+19,188,26)
     self.voiceEntry:initialise()
     self.voiceEntry:instantiate()
@@ -309,6 +385,7 @@ function Sidebar:onVoice()
 end
 function Sidebar:onHealth(button) HUD.showHealth(button.npcId) end
 function Sidebar:onMenu(button) HUD.openMenu(button.npcId) end
+function Sidebar:onHelp() HUD.showVoiceHelp() end
 function Sidebar:render()
     ISPanel.render(self)
     self.refreshCount = self.refreshCount + 1
@@ -317,7 +394,7 @@ function Sidebar:render()
         if HUD.feedbackTicks > 400 then HUD.feedback = nil end
     end
     self:drawText("SUPRANPC - EQUIPE", 9, 8,0.4,0.9,0.45,1,UIFont.Small)
-    self:drawText(self.voiceTitle or "COMANDO DE VOZ (WIN+H)",
+    self:drawText(self.voiceTitle or "COMANDOS DA EQUIPE",
        9,33 + #self.roster.profiles*76,0.7,0.85,0.72,1,UIFont.Small)
     local player=getSpecificPlayer and getSpecificPlayer(0)
     local knowledge=MapKnowledge.get(player)
@@ -326,8 +403,11 @@ function Sidebar:render()
     local subtitle=base and
        ("Mapa: BASE "..base.defined.." | "..markCount.." marcacoes") or
        ("Mapa: sem BASE | "..markCount.." marcacoes")
-    self:drawText(subtitle,9,33 + #self.roster.profiles*76+52,
-        0.75,0.87,0.72,1,UIFont.Small)
+    local baseY=33 + #self.roster.profiles*76
+    self:drawText(subtitle,9,baseY+52,0.75,0.87,0.72,1,UIFont.Small)
+    self:drawText("PTT: "..VoiceHotkey.keyLabel().. " | "..
+        (VoiceHotkey.recognizer and VoiceHotkey.state or "MIC SEM STT"),
+        9,baseY+72,0.84,0.78,0.56,1,UIFont.Small)
     for i,profile in ipairs(self.roster.profiles) do
         if self.refreshCount % 35 == 1 or not self.healthCache[profile.id] then
             self.healthCache[profile.id] = Health.inspect(Adapter.get(profile.id), profile)
@@ -375,7 +455,9 @@ end
 function HUD.close()
     if HUD.rosterPanel then HUD.rosterPanel:removeFromUIManager() end
     if HUD.healthPanel then HUD.healthPanel:removeFromUIManager() end
-    HUD.rosterPanel, HUD.healthPanel, HUD.roster = nil,nil,nil
+    if HUD.helpPanel then HUD.helpPanel:removeFromUIManager() end
+    HUD.rosterPanel, HUD.healthPanel, HUD.helpPanel, HUD.roster = nil,nil,nil,nil
+    VoiceHotkey.reset()
     Speech.clear()
 end
 
