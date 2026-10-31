@@ -68,4 +68,20 @@ s=T.new()
 assert(T.plan(s,{stance="AGGRESSIVE",standing=0,down=0,
     alertStanding=0,alertDown=1,alertDistance=9,
     engageRange=12,mustRetreat=false})=="APPROACH")
+-- AGGRESSIVE nunca deve entrar na pausa defensiva SHOVE/BACKSTEP/WAIT.
+for _,n in ipairs({1,2,3,6}) do
+ local combat=T.new()
+ for i=1,5 do
+  local action=T.plan(combat,{stance="AGGRESSIVE",standing=n,down=0,
+      nearestDistance=1.2,visible=true,melee=false,
+      engageRange=12,mustRetreat=false})
+  assert(action=="SHOVE", "aggressive melee pressure stopped: "..tostring(action))
+ end
+end
+local weapon=T.new()
+for i=1,4 do
+ assert(T.plan(weapon,{stance="AGGRESSIVE",standing=2,down=0,
+    nearestDistance=1.5,visible=true,melee=true,
+    engageRange=12,mustRetreat=false})=="SWING")
+end
 print("[SupraNPC] combat_tactics_spec: OK")
