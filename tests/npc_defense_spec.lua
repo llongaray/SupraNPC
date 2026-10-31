@@ -89,6 +89,18 @@ npc.getPrimaryHandItem=function() return nil end
 npc.getAttackingWeapon=function() return nil end
 local ok,msg=Defense.hit(npc,enemy)
 assert(ok==false and msg=="sem HandWeapon corpo a corpo")
+-- Arma desarmada criada pela factory oficial, sem gerar inventario.
+InventoryItemFactory={CreateItem=function(itemType)
+    assert(itemType=="Base.BareHands")
+    return {kind="HandWeapon",
+        getMinDamage=function() return 0.2 end,
+        getMaxDamage=function() return 0.4 end,
+        getMaxRange=function() return 1.1 end,
+        isAimedFirearm=function() return false end}
+end}
+assert(Defense.hit(npc,enemy)==true)
+assert(enemy.hits==3)
+InventoryItemFactory=nil
 npc.getPrimaryHandItem=function() return weapon end
 -- Visibilidade é obrigatória para atingir atraves de tiles.
 npc.CanSee=function() return false end
