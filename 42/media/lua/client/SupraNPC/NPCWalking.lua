@@ -79,32 +79,33 @@ function W.pickRetreat(actor,threat,steps)
     if length<0.01 then dx,dy,length=1,0,1 end
     dx,dy=dx/length,dy/length
     steps=math.max(1,math.min(5,math.floor(tonumber(steps) or 2)))
-    local best,score=nil,-math.huge
     local bx,by=math.floor(ax),math.floor(ay)
+    local candidates={}
     for ox=-steps,steps do
         for oy=-steps,steps do
             local projection=ox*dx+oy*dy
             if projection>0.6 and ox*ox+oy*oy<=steps*steps then
                 local square=call(cell,"getGridSquare",bx+ox,by+oy,az)
                 if W.free(square,actor) then
-                    -- Safe retreat uses the same loaded, wall-aware planner.
-                    -- Never open a portal while fleeing; choose a walkable
-                    -- first step only if an alternative route exists.
-                    local md=call(actor,"getModData")
-                    local ownerId=md and md.SupraNPC_ID or ""
-                    local waypoint=Navigation.next(actor,bx+ox+0.5,
-                        by+oy+0.5,az,ownerId,W.free,0.70,true)
-                    if waypoint then
-                        local away=(bx+ox+0.5-zx)^2+(by+oy+0.5-zy)^2
-                        local sideways=math.abs(ox*dy-oy*dx)
-                        local value=away-sideways*0.6
-                        if value>score then best,score=waypoint,value end
-                    end
+                    local away=(bx+ox+0.5-zx)^2+(by+oy+0.5-zy)^2
+                    local sideways=math.abs(ox*dy-oy*dx)
+                    local value=away-sideways*0.6
+                    candidates[#candidates+1]={x=bx+ox,y=by+oy,score=value}
                 end
             end
         end
     end
-    return best
+    table.sort(candidates,function(a,b) return a.score>b.score end)
+    local md=call(actor,"getModData")
+    local id=md and md.SupraNPC_ID or ""
+    -- Cap expensive path checks: at most 6 candidates per retreat decision.
+    for i=1,math.min(#candidates,6) do
+        local item=candidates[i]
+        local waypoint=Navigation.next(actor,item.x+0.5,item.y+0.5,
+            az,id,W.free,0.70,true)
+        if waypoint then return waypoint end
+    end
+    return nil
 end
 function W.pickNear(player, actor)
     if not player or not actor or not getCell then return nil end
