@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "companion/**"
+      - "docs/VOICE_BRIDGE.md"
       - ".github/workflows/windows-voice.yml"
 jobs:
   windows-voice:
