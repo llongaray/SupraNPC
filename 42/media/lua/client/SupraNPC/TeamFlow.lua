@@ -21,6 +21,18 @@ local function stringValue(value, fallback)
     return s ~= "" and s or fallback
 end
 
+-- Converte cores do HumanVisual para numeros primitivos: nenhum userdata Java
+-- deve ficar guardado na ficha persistida no modData do personagem.
+local function snapshotColor(visual, getter)
+    local color = safeCall(visual, getter)
+    if not color then return nil end
+    local r = tonumber(safeCall(color, "getRedFloat"))
+    local g = tonumber(safeCall(color, "getGreenFloat"))
+    local b = tonumber(safeCall(color, "getBlueFloat"))
+    if not r or not g or not b then return nil end
+    return { r = r, g = g, b = b }
+end
+
 local function takeProfession()
     local main = screen()
     local p = main and main.charCreationProfession
@@ -97,7 +109,13 @@ local function captureNPC(index, creation)
     profile.appearance = {
         hair = stringValue(safeCall(visual, "getHairModel"), ""),
         beard = stringValue(safeCall(visual, "getBeardModel"), ""),
-        gender = profile.female and "female" or "male"
+        gender = profile.female and "female" or "male",
+        skinIndex = tonumber(safeCall(visual, "getSkinTextureIndex")),
+        hairColor = snapshotColor(visual, "getHairColor"),
+        beardColor = snapshotColor(visual, "getBeardColor"),
+        voicePrefix = stringValue(safeCall(desc, "getVoicePrefix"), ""),
+        voiceType = stringValue(safeCall(desc, "getVoiceType"), ""),
+        voicePitch = stringValue(safeCall(desc, "getVoicePitch"), "")
     }
     profile.status = { health = 100 }
     profile.complete = true
