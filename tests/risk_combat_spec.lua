@@ -116,5 +116,44 @@ assert(entry.state.active=="RETREAT")
 assert(entry.navStatus=="FLEE_BASE")
 assert(walking.moving)
 D.clear()
+-- PASSIVE runs from even one zombie, never shoves or attacks.
+walking.moving=false
+npc.getPrimaryHandItem=function() return weapon end
+player.getPrimaryHandItem=function() return weapon end
+zombieList={z(3,0)}
+entry.stance="PASSIVE"
+time=time+2000
+assert(D.update(entry,player,{})==true)
+assert(entry.state.active=="RETREAT" and entry.navStatus=="FLEE")
+assert(D.STATES.A.planner.last=="FLEE")
+assert(D.STATES.A.planner.cycles==0)
+D.clear()
+-- DEFENSIVE fights 2 while still willing to flee from 3+ when outnumbered.
+walking.moving=false
+zombieList={z(1,0),z(2,0)}
+entry.stance="DEFENSIVE"
+time=time+2000
+assert(D.update(entry,player,{})==true)
+assert(entry.state.active=="SELF_DEFEND")
+assert(entry.navStatus=="SHOVE" or entry.navStatus=="SWING")
+assert(D.STATES.A.planner.last~="FLEE")
+D.clear()
+-- AGGRESSIVE ignores low health and outnumbering; attack wins over FOLLOW.
+walking.moving=false
+npc.getPrimaryHandItem=function() return nil end
+player.getPrimaryHandItem=function() return nil end
+zombieList={z(4,0),z(5,0),z(6,0)}
+entry.stance="AGGRESSIVE"
+time=time+2000
+assert(D.update(entry,player,{})==true)
+assert(entry.state.active=="SELF_DEFEND" and entry.navStatus=="APPROACH")
+assert(D.STATES.A.planner.last~="FLEE")
+D.clear()
+walking.moving=false
+zombieList={z(9,0)}
+time=time+2000
+assert(D.update(entry,player,{})==true)
+assert(entry.navStatus=="APPROACH")
+D.clear()
 Speech.clear()
 print("[SupraNPC] risk_combat_spec: OK")
