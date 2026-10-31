@@ -197,8 +197,20 @@ function D.update(entry,player,team)
  local danger=Perception.risk(obs,health)
  local visible=obs.seen or 0
  local near=(obs.nearStanding or 0)+(obs.nearDown or 0)
+ -- Threat memory prevents FOLLOW resuming while escaping a group
+ -- simply because the NPC turned away from the vision cone.
+ local memory=false
+ if old and old.retreatThreat and zombie(old.retreatThreat) then
+    local remembered=Perception.distance(actor,old.retreatThreat)
+    memory=remembered~=nil and remembered<10
+ end
+ if memory then
+    danger.retreat=true
+    if not obs.firstVisible then obs.firstVisible=old.retreatThreat end
+ end
  local engage=near>0 or (obs.alertDistance and obs.alertDistance<=8)
-             or (danger.retreat and obs.alertDistance and obs.alertDistance<=10)
+             or (danger.retreat and ((obs.alertDistance and
+                 obs.alertDistance<=10) or memory))
  if visible>0 and not old then
     Speech.npcAlert(actor,"SPOTTED")
  end
@@ -220,6 +232,10 @@ function D.update(entry,player,team)
     Core.log("DEFENSE "..id.." iniciou; ordem preservada "..entry.state.requested)
  end
  Orders.evaluate(entry.state,{selfThreat=not danger.retreat,mustRetreat=danger.retreat})
+ if danger.retreat then
+    old.retreatThreat=obs.nearest or obs.firstVisible or
+       obs.nearestDown or old.retreatThreat
+ else old.retreatThreat=nil end
  local nowMs=now()
  if danger.retreat and not old.warnedRetreat then
     Speech.npcAlert(actor,danger.unarmed and "UNARMED" or "HORDE",true)
