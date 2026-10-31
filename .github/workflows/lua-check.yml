@@ -17,4 +17,6 @@ jobs:
           test -d common
           find 42/media/lua -name '*.lua' -type f -print0 | xargs -0 -n 1 luac5.1 -p
       - name: Unit tests (game-independent logic)
-        run: lua5.1 tests/roster_spec.lua
+        run: |
+          lua5.1 tests/roster_spec.lua
+          lua5.1 tests/team_flow_spec.lua
