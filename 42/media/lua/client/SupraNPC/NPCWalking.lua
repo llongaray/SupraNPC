@@ -50,6 +50,21 @@ function W.free(square, ignore)
     end
     return true
 end
+function W.pickAround(x,y,z,actor)
+    local cell=getCell and getCell()
+    if not cell then return nil end
+    local offsets={{1,0},{-1,0},{0,1},{0,-1},
+        {1,1},{-1,1},{1,-1},{-1,-1},{2,0},{-2,0},{0,2},{0,-2}}
+    local best,score=nil,math.huge
+    for _,offset in ipairs(offsets) do
+        local square=call(cell,"getGridSquare",x+offset[1],y+offset[2],z)
+        if W.free(square,actor) then
+            local d=dist(actor,x+offset[1]+0.5,y+offset[2]+0.5)
+            if d<score then best,score=square,d end
+        end
+    end
+    return best
+end
 function W.pickNear(player, actor)
     if not player or not actor or not getCell then return nil end
     local cell = getCell()
