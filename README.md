@@ -1,12 +1,14 @@
 # SupraNPC
 
+> **CRASH — análise de log e hotfix v0.1.6-dev:** o log enviado mostrou **v0.1.4-dev** e terminou imediatamente depois de finalizar a ficha do último NPC, antes da confirmação de entrada no mundo. A restauração agora reaproveita as referências originais do player e as linhas de traits, sem recalcular profissões ou recriar avatar no momento crítico. O método `initPlayer` vanilla é preservado (desde a 0.1.5). **Correção ainda não validada no jogo.** Veja [diagnóstico detalhado](docs/CRASH_0.1.6_LOG_ANALYSIS.md).
+
 > **CRASH EM INVESTIGAÇÃO (0.1.5-dev):** após concluir 1 NPC e clicar JOGAR, a B42.13.1 fechou abruptamente no teste. Foi retirada a substituição indevida do método vanilla `initPlayer`, mas a causa do encerramento não foi confirmada. **Antes de testar novamente, guarde `%USERPROFILE%\\Zomboid\\console.txt` do crash.** Consulte [o relatório e coleta de logs](docs/CRASH_0.1.5.md). Não use saves importantes.
 
-> **URGENTE — v0.1.5-dev:** o teste da v0.1.3 confirmou que o adaptador `addZombiesInOutfit` gerava **zumbis reais**, e não companheiros NPC. O spawn está **DESATIVADO** e o adaptador foi bloqueado mesmo se a flag for ligada manualmente. **Abandone o save descartável do teste com os zumbis**; nenhuma remoção automática de personagens antigos foi implementada. A criação sequencial e o armazenamento das fichas continuam.
+> **URGENTE — v0.1.6-dev:** o teste da v0.1.3 confirmou que o adaptador `addZombiesInOutfit` gerava **zumbis reais**, e não companheiros NPC. O spawn está **DESATIVADO** e o adaptador foi bloqueado mesmo se a flag for ligada manualmente. **Abandone o save descartável do teste com os zumbis**; nenhuma remoção automática de personagens antigos foi implementada. A criação sequencial e o armazenamento das fichas continuam.
 
 Mod open source para **Project Zomboid Build 42**, com desenvolvimento direcionado à **B42.13.1**. Objetivo: permitir criar companheiros NPC antes de começar o jogo, spawná-los próximos ao jogador e comandá-los com lógica determinística (sem IA externa).
 
-> **Estado: v0.1.5-dev / protótipo inicial.** O jogo ainda não foi utilizado para validar esta implementação. O mod já tem estrutura B42, seletor de quantidade, fichas serializáveis, lógica de ordens e adaptadores experimentais. **Criacao sequencial validada pelo usuario na B42.13.1.** O spawn de teste foi habilitado em novas partidas, mas usa um CORPO PROXY baseado em IsoZombie, nao um IsoPlayer ou NPC humano completo. Teste somente em saves descartaveis.
+> **Estado: v0.1.6-dev / protótipo inicial.** O jogo ainda não foi utilizado para validar esta implementação. O mod já tem estrutura B42, seletor de quantidade, fichas serializáveis, lógica de ordens e adaptadores experimentais. **Criacao sequencial validada pelo usuario na B42.13.1.** O spawn de teste foi habilitado em novas partidas, mas usa um CORPO PROXY baseado em IsoZombie, nao um IsoPlayer ou NPC humano completo. Teste somente em saves descartaveis.
 
 ## Instalar via git clone diretamente na pasta `mods`
 
@@ -95,10 +97,10 @@ Checklist detalhado: [docs/TEST_CHECKLIST_0.1.3.md](docs/TEST_CHECKLIST_0.1.3.md
 
 ## Correção de navegação do editor — 0.1.3-dev
 
-Correção da troca de avatar/descriptor entre jogador e NPCs, interceptação de próximo na tela de profissão, estados explícitos profissão→aparência e retorno seguro em falhas. A correção não significa que o spawn foi implementado ou validado. Para testar, use [o roteiro da v0.1.5-dev](docs/TEST_CHECKLIST_0.1.3.md) e envie o `console.txt` se a mensagem ERROR aparecer.
+Correção da troca de avatar/descriptor entre jogador e NPCs, interceptação de próximo na tela de profissão, estados explícitos profissão→aparência e retorno seguro em falhas. A correção não significa que o spawn foi implementado ou validado. Para testar, use [o roteiro da v0.1.6-dev](docs/TEST_CHECKLIST_0.1.3.md) e envie o `console.txt` se a mensagem ERROR aparecer.
 
 
-## Marco v0.1.5-dev — spawn proxy (ainda sem NPC real)
+## Marco v0.1.6-dev — spawn proxy (ainda sem NPC real)
 
 A criação de jogador e 2 NPCs já foi exercitada com sucesso na B42.13.1. O problema de nenhum spawn ocorria porque `EXPERIMENTAL_SPAWN` estava `false`; foi substituído o construtor `IsoPlayer.new` não validado por uma camada de protótipo sem dependências externas, baseada em `addZombiesInOutfit`. Os NPCs criados no editor ainda não têm aplicação completa de aparência/atributos/ordens no mundo. O adapter marca entidades como `SupraNPC_Proxy` e tenta neutralizar seus ataques (sem garantia nesta build); não as registra para seguir.
 
