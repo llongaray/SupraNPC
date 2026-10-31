@@ -24,6 +24,15 @@ function M.choose(entry,player)
  end
  if status=="SHOVE" or status=="SWING" or status=="STOMP" or
      status=="DEFENDING" then return "WALK" end
+ -- During combat, pursuit must respect the stance rather than inherit
+ -- the player's stealth or the passive distant-threat sneaking rule.
+ if entry.state and entry.state.active=="SELF_DEFEND" then
+    if entry.stance=="AGGRESSIVE" and status=="APPROACH" and obs and
+       type(obs.alertDistance)=="number" and obs.alertDistance>3.2 then
+       return "RUN"
+    end
+    return "WALK"
+ end
  if call(player,"isSneaking")==true then return "SNEAK" end
  if obs and obs.standing and obs.standing>0 and
      not (obs.nearStanding and obs.nearStanding>0) then
