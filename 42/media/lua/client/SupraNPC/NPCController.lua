@@ -208,7 +208,7 @@ function Controller.update(player)
             -- Defesa passa antes de QUALQUER ordem manual; nao apaga requested.
             local fighting=Defense.update(entry,player,Controller.entries)
             if fighting then
-                entry.navStatus="DEFENDING"
+                entry.navStatus=entry.navStatus or "DEFENDING"
             elseif entry.state.active=="IDLE" then
                 if Walking.active(id) then Walking.cancel(id,"aguardar") end
                 entry.navStatus="WAITING"
