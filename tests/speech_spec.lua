@@ -11,4 +11,15 @@ for _,stance in ipairs({"PASSIVE","DEFENSIVE","AGGRESSIVE"}) do
 end
 assert(Speech.compose("Alex","FOLLOW",nil,false):find("nao consegui",1,true))
 Speech.clear()
+local actor={isDead=function() return false end}
+getTimestampMs=function() return 25000 end
+Speech.npcReply(actor,"FOLLOW",nil,true)
+assert(#Speech.active==1 and Speech.active[1].actor==actor)
+assert(Speech.active[1].text:find("indo",1,true) or
+       Speech.active[1].text:find("voce",1,true))
+assert(Speech.npcAlert(actor,"HORDE",true)==true)
+assert(Speech.npcAlert(actor,"HORDE")==false) -- cooldown
+assert(#Speech.active[1].queue==1)
+Speech.clear()
+assert(#Speech.active==0)
 print("[SupraNPC] speech_spec: OK")
