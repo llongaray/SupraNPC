@@ -271,7 +271,21 @@ function Controller.update(player)
     if not Core.isSolo() then return end
     Controller.ticks=Controller.ticks+1
     Walking.update()
-    if not player or Controller.ticks%15~=0 then return end
+    if not player then return end
+    -- Scan/plan every 15 ticks; combat pulses run every 3 ticks using the
+    -- cached target, not another expensive full zombie scan.
+    if Controller.ticks%15~=0 then
+        if Controller.ticks%3==0 then
+            for id,entry in pairs(Controller.entries) do
+                if entry.stance=="AGGRESSIVE" and Defense.STATES[id] and
+                   Adapter.get(id)==entry.actor and
+                   call(entry.actor,"isDead")==false then
+                    Defense.pulse(entry,player,Controller.entries)
+                end
+            end
+        end
+        return
+    end
     for id,entry in pairs(Controller.entries) do
         if Adapter.get(id)==entry.actor and
            call(entry.actor,"isDead")~=true then
