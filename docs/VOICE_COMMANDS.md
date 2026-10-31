@@ -7,11 +7,13 @@
 - Entrada manual por texto mantida; os comandos executam e o NPC responde no mundo por balão de fala sem aguardar mensagens antigas.
 - Contrato `VoiceHotkey.installRecognizer(provider)` aceita backend de fala com `start(callback)` e `stop()`. Ao concluir uma frase o backend deve chamar `callback(transcricao)`. O mesmo parser PT-BR e alvo por nome / Todos são reutilizados.
 
-## Importante: microfone ainda NÃO está integrado
+## Microfone PT-BR integrado via companion local (0.1.27-dev)
 
-A Build 42 fornece suporte a entrada de teclado e VOIP, mas **não fornece API Lua de speech-to-text**. Portanto uma tecla ou o VOIP nativo não transcrevem palavras. Nesta implementação **nenhum código captura microfone**, e a tela mostra **STT PENDENTE** em vez de fingir que está gravando. Vincular a tecla sem um backend informa isso claramente e não interfere com o jogo.
+A engine Lua da Build 42 não oferece API de captura de microfone nem STT. A versão 0.1.27-dev adiciona `VoiceBridge.lua` e um processo portátil externo `SupraNPCVoice.exe` (Whisper `base` local) que recebe as bordas do botão e devolve a transcrição ao mesmo parser das ordens digitadas. A fala **não é enviada para servidores externos**.
 
-Para obter um push-to-talk realmente funcional, será necessário empacotar e validar um reconhecedor PT-BR compatível (offline, modelo embarcado, ou um serviço de STT local) com acesso ao áudio e ponte suportada para Lua. Integrações Java não são oficialmente suportadas pelo projeto; não injetar Java ou executar processos arbitrários sem revisão de segurança. Não presumir compatibilidade de System.Speech (Windows Speech Recognition) com PT-BR: o motor de desktop tradicional não oferece esse idioma por padrão. `Win+H` não é considerado solução interna.
+O HUD permanece em `STT PENDENTE` enquanto o companion não estiver rodando. Quando o programa publicar heartbeat, passa para `READY`; ao pressionar exibe `LISTENING` e ao soltar `PROCESSING`. A resposta do NPC acontece após o reconhecimento. Não é garantida latência zero, especialmente em CPUs lentas. Veja [instalação e download do pacote Windows](VOICE_BRIDGE.md).
+
+**Não use o atalho Win+H:** ele não faz parte deste sistema. O companion deve ser iniciado pelo jogador; o mod sozinho não consegue iniciar executáveis nativos. Ainda é obrigatório validar o áudio no jogo e a compatibilidade do Windows.
 
 ## Validação
 
@@ -20,4 +22,4 @@ Para obter um push-to-talk realmente funcional, será necessário empacotar e va
 3. Abra o painel SupraNPC e clique **?** para ver os exemplos.
 4. Digite `Yong, me segue` e clique Enviar: o NPC recebe FOLLOW e responde.
 5. Pressione o atalho: sem recognizer instalado, aparece mensagem de STT ainda não integrado; não aparece estado falso `LISTENING`.
-6. Uma implementação futura do backend deve ser validada no jogo B42.13.1 com microfone PT-BR real e latência medida.
+6. Baixe e inicie o pacote portátil descrito em `VOICE_BRIDGE.md`. Verifique o HUD mudar para `READY`; segure Mouse Btn 3, fale e solte. Confirme o texto na janela do companion e a resposta do NPC. Isso requer validação em jogo real.
