@@ -22,3 +22,5 @@ jobs:
           lua5.1 tests/team_flow_spec.lua
           lua5.1 tests/spawn_proxy_spec.lua
           lua5.1 tests/renderer_spec.lua
+          lua5.1 tests/orders_engine_spec.lua
+          lua5.1 tests/config_spec.lua
