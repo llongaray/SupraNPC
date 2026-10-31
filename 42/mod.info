@@ -1,6 +1,6 @@
 name=SupraNPC
 id=SupraNPC
 author=Leonardo Longaray dos Santos
-modversion=0.1.7-dev
+modversion=0.1.8-dev
 description=SupraNPC B42: criacao individual e spawn humano IsoPlayer experimental, renderizacao manual. Apenas single-player.
 versionMin=42.13.0
