@@ -2,6 +2,7 @@
 -- Somente jogo solo. NUNCA usa addZombiesInOutfit.
 -- Este modulo trata de spawn e ownership, NAO da logica de IA.
 local Core = require("SupraNPC/Constants")
+local Wardrobe = require("SupraNPC/Wardrobe")
 local Adapter = { MODE = "iso_player", actors = {}, attempt = 0 }
 
 local OFFSETS = {
@@ -134,31 +135,24 @@ local function descriptorFor(profile)
     return desc
 end
 
+-- Somente fallback quando o editor nao forneceu roupa alguma.
 local BASIC_CLOTHES = {
-    "Base.Tshirt_DefaultTEXTURE",
-    "Base.Trousers_DefaultTEXTURE",
-    "Base.Shoes_Black"
+    {type = "Base.Tshirt_DefaultTEXTURE"},
+    {type = "Base.Trousers_DefaultTEXTURE"},
+    {type = "Base.Shoes_Black"}
 }
 
-local function dressBasic(actor)
-    if not InventoryItemFactory or not InventoryItemFactory.CreateItem then return end
-    local inventory = call(actor, "getInventory")
-    if not inventory then return end
-    local worn = call(actor, "getWornItems")
-    for _, typeName in ipairs(BASIC_CLOTHES) do
-        local item = InventoryItemFactory.CreateItem(typeName)
-        if item then
-            call(inventory, "AddItem", item)
-            local location = call(item, "getBodyLocation")
-            if location and location ~= "" then
-                if actor.setWornItem then
-                    call(actor, "setWornItem", location, item)
-                elseif worn then
-                    call(worn, "setItem", location, item)
-                end
-            end
-        end
+local function dressFromProfile(actor, profile)
+    local outfit = profile.appearance and profile.appearance.clothing
+    if not Wardrobe.validate(outfit) or #outfit == 0 then
+        Core.log("NPC " .. profile.id .. ": sem roupas registradas, tentando kit basico")
+        outfit = BASIC_CLOTHES
     end
+    local worn, failed, reason = Wardrobe.equip(actor, outfit)
+    Core.log("NPC " .. profile.id .. ": vestidos=" .. tostring(worn) ..
+        "/" .. tostring(#outfit) .. " falhas=" .. tostring(failed) ..
+        (reason and (" motivo=" .. tostring(reason)) or ""))
+    -- O NPC deve continuar existindo mesmo se uma peca for incompatível.
 end
 
 local function place(actor, square)
@@ -226,7 +220,7 @@ function Adapter.spawn(player, profile, reserved)
         md.SupraNPC_Profession = profile.profession
         md.SupraNPC_Order = profile.order or "FOLLOW"
         md.SupraNPC_Engine = "IsoPlayer"
-        dressBasic(actor)
+        dressFromProfile(actor, profile)
         place(actor, square)
         call(actor, "resetModelNextFrame")
     end)
