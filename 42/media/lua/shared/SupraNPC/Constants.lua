@@ -2,16 +2,19 @@
 -- Nenhuma dependência externa; build de referência 42.13.1.
 SupraNPC = SupraNPC or {}
 local M = SupraNPC
-M.VERSION = "0.1.2-dev"
+M.VERSION = "0.1.3-dev"
 M.MOD_ID = "SupraNPC"
 M.MAX_COMPANIONS = 5
 M.DEFAULT_FOLLOW_DISTANCE = 2.5
 M.THINK_INTERVAL = 20
 M.DEBUG = true
 
--- A instanciação de IsoPlayer como NPC não foi validada em 42.13.1.
--- Ativação deliberadamente experimental e opt-in para preservar saves.
-M.EXPERIMENTAL_SPAWN = false
+-- O usuario seleciona 0..N NPCs antes de iniciar uma NOVA partida.
+-- 0.1.3: testar spawn automatico de PROXIES IsoZombie NEUTRALIZADOS em
+-- saves descartaveis. Nao sao IsoPlayer; nao combatem/seguem neste marco.
+M.EXPERIMENTAL_SPAWN = true
+M.NPC_BODY_MODE = "zombie_proxy"
+M.PROXY_FOLLOW = false
 
 function M.log(message)
     if M.DEBUG then
