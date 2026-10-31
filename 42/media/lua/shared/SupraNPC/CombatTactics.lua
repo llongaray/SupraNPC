@@ -1,6 +1,6 @@
 -- SupraNPC tactical planner, pure Lua 5.1. No engine calls.
 -- Never assume a shove succeeded; the observed down state decides.
-local T={SHOVE_RANGE=1.32, STOMP_RANGE=0.92, DANGER_RADIUS=6}
+local T={SHOVE_RANGE=1.32, STOMP_RANGE=1.35, DANGER_RADIUS=6}
 local function good(n) return type(n)=="number" and n==n and n>=0 end
 function T.new()
  return {last="NONE",cycles=0,failedShoves=0,escape=false,wasThreatened=false}
@@ -23,7 +23,8 @@ function T.plan(state,o)
     elseif distant==0 then
        action,tactic="RESUME","NONE"
        state.escape=false;state.failedShoves=0
-    elseif good(o.alertDistance) and o.alertDistance<=8 then
+    elseif good(o.alertDistance) and
+           o.alertDistance<=(o.engageRange or 8) then
        action,tactic="APPROACH","INTERCEPT"
     end
  elseif o.mustRetreat or state.escape then
@@ -40,17 +41,22 @@ function T.plan(state,o)
        action="WAIT"
     elseif good(dist) and dist<=T.SHOVE_RANGE and o.visible then
        action="SHOVE"
+    elseif good(dist) and o.melee==true and dist<=1.85 then action="SWING"
     elseif good(dist) and dist<=5.5 then action="APPROACH"
     else action="WAIT" end
  elseif standing>0 then
     tactic="SUSTAINED_SHOVE"
     if state.last=="BACKSTEP" and good(dist) and dist>T.SHOVE_RANGE then
        action="WAIT"
-    elseif good(dist) and dist<=T.SHOVE_RANGE and o.visible then
+    elseif good(dist) and dist<=1.02 and o.visible then
        if (state.failedShoves or 0)>=4 and dist<0.8 then
           action="BACKSTEP";state.failedShoves=0
        else action="SHOVE" end
-    elseif good(dist) and dist<=8 then
+    elseif good(dist) and o.melee==true and dist<=1.85 and o.visible then
+       action="SWING"
+    elseif good(dist) and dist<=T.SHOVE_RANGE and o.visible then
+       action="SHOVE"
+    elseif good(dist) and dist<=(o.engageRange or 8) then
        action="APPROACH"
     else action="WATCH" end
  elseif down>0 then
