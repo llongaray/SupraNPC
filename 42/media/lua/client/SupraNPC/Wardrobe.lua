@@ -92,6 +92,9 @@ end
 function Wardrobe.capture(desc)
     local items = {}
     local worn = call(desc, "getWornItems")
+    if not worn then
+        return items, "SurvivorDesc:getWornItems indisponivel"
+    end
     local count = tonumber(call(worn, "size")) or 0
     if count < 0 or count > 80 then
         return items, "contagem de roupas fora de limite"
@@ -107,6 +110,9 @@ function Wardrobe.capture(desc)
                 type = fullType, location = loc, visual = captureVisual(item)
             }
         end
+    end
+    if #items == 0 then
+        return items, "nenhuma peca registrada; revisar setWornItem no editor"
     end
     return items
 end
