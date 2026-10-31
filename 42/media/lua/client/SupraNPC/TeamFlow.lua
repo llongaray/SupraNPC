@@ -3,6 +3,7 @@
 -- Intercepta somente o ultimo NEXT; os demais botoes continuam vanilla.
 local Core = require("SupraNPC/Constants")
 local Roster = require("SupraNPC/Roster")
+local Wardrobe = require("SupraNPC/Wardrobe")
 local Flow = { session = nil, installed = false, error = nil }
 
 local function screen()
@@ -137,6 +138,12 @@ local function captureNPC(index, creation)
         voiceType = stringValue(safeCall(desc, "getVoiceType"), ""),
         voicePitch = stringValue(safeCall(desc, "getVoicePitch"), "")
     }
+    local clothes, captureWarning = Wardrobe.capture(desc)
+    profile.appearance.clothing = clothes
+    if captureWarning then
+        Core.log("NPC " .. index .. " vestuario: " .. tostring(captureWarning))
+    end
+    Core.log("NPC " .. index .. " roupas registradas: " .. tostring(#clothes))
     profile.status = { health = 100 }
     profile.complete = true
     Core.log("Ficha NPC " .. index .. " finalizada: " ..
