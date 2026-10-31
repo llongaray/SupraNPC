@@ -40,11 +40,18 @@ local function symbols()
    if ok then m=res end
  end
  if not m then return nil end
+ -- MapItem:getSymbols() returns raw WorldMapSymbols in B42.13.1.
+ -- The Java object is NOT exposed to Lua as a callable table.
+ -- Even if wrapped in pcall, accessing getSymbolCount on this object
+ -- writes a full Kahlua stack trace every 90 ticks (console.log flood).
+ -- The raw object must never be probed for unsupported Lua members.
+ -- The UIWorldMap:getSymbolsAPI() wrapper above is the supported reader.
+ -- A plain Lua table is accepted here solely for injected unit mocks.
  local s=call(m,"getSymbols")
- if s and call(s,"getSymbolCount") then return s end
- -- Alternative B42 API wrappers, if provided by the game.
- s=call(m,"getSymbolsAPI")
- if s and call(s,"getSymbolCount") then return s end
+ if type(s)=="table" and type(s.getSymbolCount)=="function" and
+    type(s.getSymbolByIndex)=="function" then return s end
+ -- Intentionally no raw MapItem symbolsAPI fallback: if unavailable,
+ -- leave the last saved territory untouched until map UI is available.
 end
 function M.read()
  local s=symbols()
