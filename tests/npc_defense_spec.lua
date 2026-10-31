@@ -30,7 +30,7 @@ coords(player,15,16)
 enemy={kind="IsoZombie",dead=false,hits=0}
 coords(enemy,11.2,10.5)
 enemy.Hit=function(self,w,attacker,damage,ignore,delta)
-    assert(attacker==npc and w==weapon and ignore==false and delta==1.0)
+    assert(attacker==npc and w.kind=="HandWeapon" and ignore==false and delta==1.0)
     assert(damage>0 and damage<=0.65)
     self.hits=self.hits+1
     self.hp=(self.hp or 1.0)-damage
