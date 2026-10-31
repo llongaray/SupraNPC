@@ -54,7 +54,7 @@ function Picker:render()
     self:drawText("Quantos NPCs adicionais ao jogador?", 20, 55, 1, 1, 1, 1, font)
     self:drawText(tostring(self.count), 265, 118, 1, 1, 1, 1, font)
     self:drawText("Limite inicial: " .. tostring(Core.MAX_COMPANIONS) .. " NPCs. Zero = partida solo.", 20, 158, 0.85, 0.85, 0.85, 1, UIFont.Small)
-    self:drawText("Editor individual de atributos e aparencia: em desenvolvimento.", 20, 180, 0.95, 0.75, 0.56, 1, UIFont.Small)
+    self:drawText("Apos o jogador: crie cada NPC em sequencia.", 20, 180, 0.95, 0.75, 0.56, 1, UIFont.Small)
 end
 
 function Picker:onClick(button)
