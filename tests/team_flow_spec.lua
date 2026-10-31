@@ -89,16 +89,20 @@ local button = { internal = "NEXT" }
 -- Primeiro NEXT: jamais inicia mundo, abre tela de profissao NPC 1.
 assert(Flow.onMainClick(create, button, 0, 0, original))
 assert(originalCalls == 0 and Flow.session.index == 1)
+assert(Flow.session.stage == "profession")
 assert(MainScreen.instance.desc ~= playerDescriptor)
 assert(profession.visible)
 assert(create.forenameEntry:getText() == "NPC")
 assert(create.surnameEntry:getText() == "1")
 
+-- Transicao equivalente ao NEXT de profissao vanilla, antes do NEXT de aparencia.
+Flow.session.stage = "appearance"
 -- Concluir NPC1 e seguir para NPC2 sem carregar mundo.
 create.forenameEntry:setText("Ana")
 create.surnameEntry:setText("NPC1")
 assert(Flow.onMainClick(create, button, 0, 0, original))
 assert(originalCalls == 0 and Flow.session.index == 2)
+assert(Flow.session.stage == "profession")
 assert(Core.pendingRoster.profiles[1].firstName == "Ana")
 assert(Core.pendingRoster.profiles[1].complete == true)
 assert(Core.pendingRoster.profiles[1].appearance.skinIndex == 2)
@@ -109,6 +113,8 @@ assert(Core.pendingRoster.profiles[2].complete == false)
 assert(create.forenameEntry:getText() == "NPC")
 assert(create.surnameEntry:getText() == "2")
 
+-- Ultimo NPC: apos profissao, so entao finalizar aparencia.
+Flow.session.stage = "appearance"
 -- Ultimo NEXT: restaura descritor do player e passa ao vanilla UMA vez.
 create.forenameEntry:setText("Bruno")
 create.surnameEntry:setText("NPC2")
