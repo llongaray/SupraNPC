@@ -22,7 +22,11 @@ function T.plan(state, input)
     end
     local action,tactic
     if standing==0 and down==0 then
+        state.escape=false
         action,tactic="RESUME","NONE"
+    elseif standing==0 and state.escape then
+        -- Fuga solo iniciada por uma horda nao muda para stomp automaticamente.
+        action,tactic="FLEE","SOLO_ESCAPE"
     elseif standing==0 then
         tactic="FINISH_DOWNED"
         local dist=input.nearestDownDistance
@@ -33,7 +37,9 @@ function T.plan(state, input)
     else
         local d=input.nearestDistance
         local visible=input.visible==true
-        if standing>=3 and input.ally~=true then
+        if input.ally==true then state.escape=false end
+        if standing>=3 and input.ally~=true then state.escape=true end
+        if state.escape then
             tactic="SOLO_ESCAPE"
             -- Empurrar uma vez ao alcance, depois fugir. Se nao der:
             -- fugir imediatamente (nunca atacar trio sem apoio).
@@ -45,9 +51,11 @@ function T.plan(state, input)
             tactic="SUPPORTED_CONTROL"
             if state.last=="SHOVE" then
                 action="BACKSTEP"
+            elseif state.last=="BACKSTEP" then
+                action="WAIT"
             elseif valid(d) and d<=T.SHOVE_RANGE and visible then
                 action="SHOVE"
-            elseif state.last=="BACKSTEP" or not visible then
+            elseif not visible then
                 action="WAIT" -- deixa os zumbis se aproximarem
             else action="APPROACH" end
         else
@@ -56,9 +64,11 @@ function T.plan(state, input)
                 action="BACKSTEP"
             elseif not visible then
                 action="WAIT"
+            elseif state.last=="BACKSTEP" then
+                action="WAIT"
             elseif valid(d) and d<=T.SHOVE_RANGE then
                 action="SHOVE"
-            elseif state.last=="BACKSTEP" then
+            elseif state.last=="APPROACH" then
                 action="WAIT"
             else action="APPROACH" end
         end
