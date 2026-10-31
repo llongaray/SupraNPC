@@ -43,6 +43,7 @@ jobs:
           lua5.1 tests/movement_style_spec.lua
           lua5.1 tests/speech_spec.lua
           lua5.1 tests/npc_defense_spec.lua
+          lua5.1 tests/stance_policy_spec.lua
           lua5.1 tests/combat_tactics_spec.lua
           lua5.1 tests/native_attack_spec.lua
           lua5.1 tests/voice_commands_spec.lua
