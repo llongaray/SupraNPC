@@ -33,3 +33,6 @@ jobs:
           lua5.1 tests/config_spec.lua
           lua5.1 tests/nav_monitor_spec.lua
           lua5.1 tests/wardrobe_spec.lua
+          lua5.1 tests/wardrobe_visual_spec.lua
+          lua5.1 tests/health_spec.lua
+          lua5.1 tests/npc_controller_spec.lua
