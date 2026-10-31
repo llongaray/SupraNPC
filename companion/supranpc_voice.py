@@ -99,7 +99,9 @@ class Voice:
                 raise ValueError("fale por pelo menos 0,1 segundo")
             if self.engine is None:
                 print("Carregando modelo Whisper PT-BR (primeira vez pode baixar)...", flush=True)
-                self.engine = WhisperModel(self.model_name, device="cpu", compute_type="int8")
+                packaged = Path(sys.executable).resolve().parent / "models" / self.model_name
+                selected = str(packaged) if packaged.exists() else self.model_name
+                self.engine = WhisperModel(selected, device="cpu", compute_type="int8")
             segments, info = self.engine.transcribe(audio, language="pt", beam_size=1,
                 vad_filter=True, condition_on_previous_text=False)
             text = " ".join(s.text.strip() for s in segments)
