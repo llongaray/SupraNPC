@@ -1,100 +1,162 @@
--- Ponto de entrada do SupraNPC: inicialização, nova partida e atualização.
+-- SupraNPC 0.1.3-dev: bootstrap e teste de spawn de corpos proxy em B42.
+-- Nao cria IsoPlayer. Nenhuma dependencia externa. Single-player.
 local Core = require("SupraNPC/Constants")
 local Roster = require("SupraNPC/Roster")
 local TeamSetup = require("SupraNPC/TeamSetup")
 local TeamFlow = require("SupraNPC/TeamFlow")
 local Adapter = require("SupraNPC/SpawnAdapter")
-local Follow = require("SupraNPC/Follow")
 
-local function onNewGame(player, square)
-    if not Core.isSolo() or not player or not Core.pendingRoster then return end
+local Boot = { ticks = 0, lastNotice = nil, retryInterval = 90, maxRetries = 8 }
+
+local function persistPending(player)
+    if not player or not player.getModData or not Core.pendingRoster then return false end
     local valid, reason = Roster.validate(Core.pendingRoster, true)
     if not valid then
-        Core.log("Equipe incompleta nao sera persistida: " .. tostring(reason))
-        return
+        Core.log("Equipe incompleta: " .. tostring(reason))
+        return false
     end
     local modData = player:getModData()
-    -- Fichas não contêm referências Java e podem ser salvas com o personagem.
+    if modData.SupraNPC then
+        Core.log("Equipe antiga no save mantida; nenhuma duplicacao de roster.")
+        Core.pendingRoster = nil
+        return false
+    end
+    local roster = Roster.copy(Core.pendingRoster)
     modData.SupraNPC = {
-        schema = 1,
-        roster = Roster.copy(Core.pendingRoster),
-        spawnAttempted = false,
-        spawnStatus = "awaiting_validation"
+        schema = 2,
+        roster = roster,
+        spawnedCount = 0,
+        spawnAttempts = 0,
+        spawnStatus = Core.EXPERIMENTAL_SPAWN and "pending_proxy" or "disabled",
+        spawnAttempted = false
     }
-    Core.log("Nova partida: " .. tostring(Core.pendingRoster.count) .. " companheiros configurados.")
-    for i = 1, Core.pendingRoster.count do
-        local profile = Core.pendingRoster.profiles[i]
-        Core.log("Ficha " .. i .. ": " .. tostring(profile.firstName) .. " " ..
-            tostring(profile.lastName) .. " | profissao=" .. tostring(profile.profession) ..
-            " | traits=" .. tostring(#profile.traits))
+    Core.log("Nova partida: " .. tostring(roster.count) ..
+        " NPC(s). Modo de spawn=" .. tostring(modData.SupraNPC.spawnStatus))
+    for index, profile in ipairs(roster.profiles) do
+        Core.log("Ficha " .. index .. ": " .. tostring(profile.firstName) .. " " ..
+            tostring(profile.lastName) .. " (profissao " .. tostring(profile.profession) .. ")")
     end
     Core.pendingRoster = nil
+    return true
 end
 
-local function onGameStart()
-    if not Core.isSolo() then return end
-    local player = getSpecificPlayer and getSpecificPlayer(0) or nil
-    if not player or not player.getModData then return end
-    local data = player:getModData().SupraNPC
-    if not data or not data.roster then
-        Core.log("OnGameStart: nao ha equipe SupraNPC no save. Verifique OnNewGame no console.txt.")
+local function onNewGame(player, square)
+    if Core.isSolo() then persistPending(player) end
+end
+
+local function currentPlayer()
+    return getSpecificPlayer and getSpecificPlayer(0) or nil
+end
+
+local function spawnStep(player, data)
+    if not Core.EXPERIMENTAL_SPAWN then return end
+    if not data or not data.roster or
+        (data.spawnStatus ~= "pending_proxy" and data.spawnStatus ~= "retry_proxy") then
         return
     end
-    Core.log("OnGameStart: equipe detectada no modData (quantidade " ..
-        tostring(data.roster.count) .. ").")
     if data.roster.count == 0 then
         data.spawnStatus = "no_companions"
         return
     end
-    if not Core.EXPERIMENTAL_SPAWN then
-        Core.log("Equipe registrada, mas spawn experimental desligado: veja README.")
-        return
-    end
-    if data.spawnAttempted then
-        Core.log("Spawn ja tentado nesta partida; evitando NPCs duplicados.")
+    if data.spawnAttempts >= Boot.maxRetries then
+        data.spawnStatus = "blocked"
+        Core.log("Spawn bloqueado apos " .. Boot.maxRetries ..
+            " tentativas. Envie console.txt antes de tentar outra vez.")
         return
     end
 
-    -- Marcar antes de criar entidades para impedir duplicação por reentrada.
-    data.spawnAttempted = true
+    data.spawnAttempts = data.spawnAttempts + 1
     local reserved = {}
-    local spawned, failures = 0, {}
+    local count, pending = 0, {}
     for index = 1, data.roster.count do
         local profile = data.roster.profiles[index]
-        local npc, err = Adapter.spawn(player, profile, reserved)
-        if npc then
-            spawned = spawned + 1
-            Follow.register(profile.id, npc)
+        if profile.proxySpawned then
+            count = count + 1
         else
-            failures[#failures + 1] = tostring(index) .. ": " .. tostring(err)
+            local ok, actor, reason = pcall(Adapter.spawn, player, profile, reserved)
+            if ok and actor then
+                profile.proxySpawned = true
+                count = count + 1
+                -- Este ator NAO e registrado no Follow: ainda e IsoZombie,
+                -- e nao deve correr em direcao ao jogador/arriscar ataques.
+            else
+                local errorText = ok and reason or actor
+                pending[#pending + 1] = tostring(index) .. ":" .. tostring(errorText)
+            end
         end
     end
-    data.spawnStatus = #failures == 0 and "experiment_spawned" or "experiment_failed"
-    data.spawnedCount = spawned
-    for i = 1, #failures do Core.log("NPC " .. failures[i]) end
-    Core.log("Tentativa experimental: " .. spawned .. "/" .. data.roster.count .. " NPC(s).")
+
+    data.spawnedCount = count
+    data.spawnAttempted = true
+    if count == data.roster.count then
+        data.spawnStatus = "proxy_spawned"
+        Core.log("Spawn PROXY concluido " .. count .. "/" .. data.roster.count ..
+            " (nao e IsoPlayer; comportamento de NPC ainda nao ativo).")
+    else
+        data.spawnStatus = "retry_proxy"
+        Core.log("Spawn proxy tentativa " .. data.spawnAttempts .. ": " ..
+            count .. "/" .. data.roster.count .. " | " .. table.concat(pending, "; "))
+    end
 end
 
-local function onPlayerUpdate(player)
-    -- Nada é alterado no personagem real. Roda a cada N ticks.
-    if not Core.isSolo() or not player then return end
-    local primary = getSpecificPlayer and getSpecificPlayer(0) or nil
-    if primary and player == primary then Follow.update(player) end
+local function onTick()
+    if not Core.isSolo() then return end
+    Boot.ticks = Boot.ticks + 1
+    if Boot.ticks % Boot.retryInterval ~= 0 then return end
+    local player = currentPlayer()
+    if not player or not player.getModData then return end
+    if Core.pendingRoster then persistPending(player) end
+    local data = player:getModData().SupraNPC
+    if not data then
+        if Boot.lastNotice ~= "missing" then
+            Core.log("Nenhuma equipe no save. Em nova partida confira o log de OnNewGame.")
+            Boot.lastNotice = "missing"
+        end
+        return
+    end
+    if data.spawnStatus == "pending_proxy" or data.spawnStatus == "retry_proxy" then
+        spawnStep(player, data)
+    elseif Boot.lastNotice ~= data.spawnStatus then
+        Core.log("Equipe no save: " .. tostring(data.roster and data.roster.count or 0) ..
+            " | estado=" .. tostring(data.spawnStatus) ..
+            " | gerados=" .. tostring(data.spawnedCount or 0))
+        Boot.lastNotice = data.spawnStatus
+    end
+end
+
+local function onZombieUpdate(zombie)
+    if not zombie or not Core.EXPERIMENTAL_SPAWN then return end
+    local ok, data = pcall(function() return zombie:getModData() end)
+    if ok and data and data.SupraNPC_Proxy == true then
+        Adapter.enforceNeutral(zombie)
+    end
 end
 
 local function onGameBoot()
-    Core.log("Versao " .. Core.VERSION .. " carregada; alvo B42.13.1.")
+    Core.log("Versao " .. Core.VERSION .. " carregada; jogo alvo B42.13.1.")
+    Core.log("Spawn automatico=" .. tostring(Core.EXPERIMENTAL_SPAWN) ..
+        " | motor=IsoZombie proxy (experimental, nao jogador).")
     TeamSetup.install()
     TeamFlow.install()
     TeamFlow.bindButtons()
 end
 
+local function onGameStart()
+    if not Core.isSolo() then return end
+    Boot.ticks = 0
+    Boot.lastNotice = nil
+    local player = currentPlayer()
+    if player and player.getModData then
+        if Core.pendingRoster then persistPending(player) end
+        local data = player:getModData().SupraNPC
+        Core.log("OnGameStart: " .. (data and tostring(data.spawnStatus) or
+            "sem roster no primeiro callback; verificarei OnTick"))
+    end
+end
+
 if Events then
     if Events.OnGameBoot then Events.OnGameBoot.Add(onGameBoot) end
-    -- Algumas builds inicializam os painéis do menu depois de OnGameBoot.
     if Events.OnMainMenuEnter then Events.OnMainMenuEnter.Add(function()
-        -- Permite configurar uma equipe nova ao voltar ao menu para outra partida.
-        -- A equipe da partida antiga foi persistida no save pelo OnNewGame.
         Core.prompted = false
         Core.pendingRoster = nil
         TeamSetup.openWindow = nil
@@ -104,5 +166,9 @@ if Events then
     end) end
     if Events.OnNewGame then Events.OnNewGame.Add(onNewGame) end
     if Events.OnGameStart then Events.OnGameStart.Add(onGameStart) end
-    if Events.OnPlayerUpdate then Events.OnPlayerUpdate.Add(onPlayerUpdate) end
+    if Events.OnTick then Events.OnTick.Add(onTick) end
+    if Events.OnZombieUpdate then Events.OnZombieUpdate.Add(onZombieUpdate) end
 end
+
+Core.Boot = Boot
+return Boot
