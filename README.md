@@ -2,7 +2,7 @@
 
 Mod open source para **Project Zomboid Build 42**, com desenvolvimento direcionado à **B42.13.1**. Objetivo: permitir criar companheiros NPC antes de começar o jogo, spawná-los próximos ao jogador e comandá-los com lógica determinística (sem IA externa).
 
-> **Estado: v0.1.0-dev / protótipo inicial.** O jogo ainda não foi utilizado para validar esta implementação. O mod já tem estrutura B42, seletor de quantidade, fichas serializáveis, lógica de ordens e adaptadores experimentais. **Não há garantia de NPCs funcionais neste commit.** O editor individual de aparência/profissão/skills e o spawn estável são as próximas etapas.
+> **Estado: v0.1.0-dev / protótipo inicial.** O jogo ainda não foi utilizado para validar esta implementação. O mod já tem estrutura B42, seletor de quantidade, fichas serializáveis, lógica de ordens e adaptadores experimentais. **Não há garantia de NPCs funcionais neste commit.** O fluxo de criação sequencial agora está implementado, mas precisa ser validado no jogo; o spawn estável ainda é uma etapa posterior.
 
 ## Instalar via git clone diretamente na pasta `mods`
 
@@ -39,17 +39,18 @@ Zomboid/
 
 **Não** crie outra subpasta `Contents/mods` dentro do clone. Em B42, o `mod.info` fica dentro da pasta `42/`, não na raiz do repositório.
 
-Depois abra o jogo, ative **SupraNPC** no menu **Mods** e ative-o também na configuração de mods da partida, caso necessário. Inicie **um save novo e descartável** e verifique a tela de seleção de quantidade quando aparecer a etapa de profissão. Use `console.txt` em `%USERPROFILE%\Zomboid\console.txt` para erros de inicialização.
+Depois abra o jogo, ative **SupraNPC** no menu **Mods** e ative-o também na configuração de mods da partida, caso necessário. Inicie **um save novo e descartável** e verifique a tela de seleção de quantidade quando aparecer a etapa de profissão. Depois finalize o personagem principal; o mod deve voltar à tela de profissão para o NPC 1, permitir escolher profissão/traits e aparência, repetir para NPC 2, e somente depois do último NPC iniciar o mundo. Use `console.txt` em `%USERPROFILE%\Zomboid\console.txt` para erros de inicialização.
 
 ## O que funciona no código agora
 
-- **Configuração inicial:** quantidade de 0 a 5 NPCs adicionais ao jogador, antes da edição vanilla do personagem, com UI própria experimental.
+- **Configuração inicial:** quantidade de 0 a 5 NPCs adicionais ao jogador, antes da edição vanilla do personagem.
+- **Editor sequencial (ainda não validado in-game):** ao concluir o player, o mod intercepta o último botão Próximo; reaproveita as telas vanilla de profissão, traços e aparência para cada NPC e só libera o carregamento do mundo ao finalizar todos. Preserva e restaura o descritor, a profissão e os traços do jogador.
 - **Modelo de fichas:** identificadores, nomes padrão, profissão, skills, traits, aparência, status e ordem independentes para cada NPC; validação e cópia de dados.
 - **Integração inicial:** evento `OnNewGame` para transferir fichas ao `modData` do personagem principal.
 - **Ordens:** máquina de estados com seguir, guardar, autodefesa, proteção e tarefas futuras (as que faltam ainda não executam ações).
 - **Spawn e seguimento:** protótipos isolados e **desativados por padrão**, pois ainda não testados na B42.13.1.
 
-**Ainda não implementado:** editor completo de cada NPC após criar o jogador, spawn conjunto validado, sistema de combate, looting, autoequipar, crafting, necessidades, cura, Base Zone e missões. Também falta verificar se o jogo salva/carrega entidades NPC criadas por Lua sem problemas.
+**Ainda não implementado/validado:** a aplicação completa de todos os detalhes visuais de cada NPC no mundo, spawn conjunto validado, sistema de combate, looting, autoequipar, crafting, necessidades, cura, Base Zone e missões. Também falta verificar se o jogo salva/carrega entidades NPC criadas por Lua sem problemas.
 
 Para experimentar o protótipo de spawn **somente em save descartável**, edite `42/media/lua/shared/SupraNPC/Constants.lua` e ajuste `EXPERIMENTAL_SPAWN = true`. O resultado pode falhar ou ser incompatível; ainda não é um modo de jogo pronto.
 
@@ -63,7 +64,7 @@ git -C "$env:USERPROFILE\Zomboid\mods\SupraNPC" pull
 
 - Código do mod: `42/media/lua/` (Lua / Kahlua 5.1).
 - Sem instalação de Python, Ollama, APIs remotas, redes neurais ou aprendizagem por reforço.
-- Testes puros: `lua5.1 tests/roster_spec.lua`.
+- Testes puros: `lua5.1 tests/roster_spec.lua` e `lua5.1 tests/team_flow_spec.lua`.
 - CI GitHub Actions: parse do Lua 5.1 e testes unitários.
 - Arquitetura e próximos passos: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Quadro Kanban: https://trello.com/b/kIsvUBhY/supranpc-project-zomboid-b42131
@@ -71,3 +72,15 @@ git -C "$env:USERPROFILE\Zomboid\mods\SupraNPC" pull
 ## Licença
 
 GNU General Public License v2.0 — veja [LICENSE](LICENSE).
+
+## Teste de regressão B42.13.1 — criação de 2 NPCs
+
+1. Execute `git pull` na pasta do mod e **reinicie completamente o jogo**.
+2. Crie **nova partida** com somente SupraNPC ativo; escolha **2** no seletor.
+3. Conclua profissão/traits/aparência do **jogador**.
+4. A tela de **profissão** deve abrir para **NPC 1/2**; escolha seus traits e vá à aparência. Finalize.
+5. A tela de **profissão** deve abrir para **NPC 2/2**; personalize e finalize.
+6. Só então deve aparecer a tela de carregamento da partida.
+7. Se alguma transição falhar, envie `%USERPROFILE%\\Zomboid\\console.txt`, especialmente linhas com `[SupraNPC]`.
+
+**Atenção:** como `EXPERIMENTAL_SPAWN=false`, os NPCs configurados ainda **não aparecerão no mundo**. Esta etapa valida o fluxo e a serialização das fichas, antes do desenvolvimento seguro do spawn real.
