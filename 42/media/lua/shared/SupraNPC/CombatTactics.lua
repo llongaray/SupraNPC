@@ -1,87 +1,66 @@
--- Planner tatico puro (Lua 5.1). Nao altera entidades nem simula quedas.
--- A acao seguinte sempre depende do estado OBSERVADO dos zumbis.
-local T = {}
-T.SHOVE_RANGE = 1.32
-T.STOMP_RANGE = 0.92
-T.DANGER_RADIUS = 4.0
-
-local function valid(v)
-    return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
-end
+-- SupraNPC tactical planner, pure Lua 5.1. No engine calls.
+-- Never assume a shove succeeded; the observed down state decides.
+local T={SHOVE_RANGE=1.32, STOMP_RANGE=0.92, DANGER_RADIUS=6}
+local function good(n) return type(n)=="number" and n==n and n>=0 end
 function T.new()
-    return {last="NONE", tactic="NONE", cycles=0}
+ return {last="NONE",cycles=0,failedShoves=0,escape=false,wasThreatened=false}
 end
--- input: standing, down, ally, nearestDistance, nearestDownDistance, visible
--- output: SHOVE, BACKSTEP, FLEE, APPROACH, PIN, STOMP, RESUME, WAIT
-function T.plan(state, input)
-    if type(state)~="table" or type(input)~="table" then return nil,"invalid_state" end
-    local standing, down = input.standing, input.down
-    if not valid(standing) or not valid(down) or
-       standing<0 or down<0 or standing%1~=0 or down%1~=0 then
-        return nil,"invalid_counts"
+function T.plan(state,o)
+ if type(state)~="table" or type(o)~="table" then return nil,"invalid" end
+ local standing=o.standing or 0;local down=o.down or 0
+ if not good(standing) or not good(down) or
+    standing%1~=0 or down%1~=0 then return nil,"invalid_counts" end
+ local action,tactic="WATCH","AWARE"
+ local nearby=standing+down
+ local distant=o.alertStanding or standing
+ local dist=o.nearestDistance
+ if nearby==0 then
+    if distant==0 then
+       action,tactic="RESUME","NONE"
+       state.escape=false;state.failedShoves=0
+    elseif o.mustRetreat then
+       action,tactic="FLEE","DANGER"
+       state.escape=true
+    elseif good(o.alertDistance) and o.alertDistance<=8 then
+       action,tactic="APPROACH","INTERCEPT"
     end
-    local action,tactic
-    if standing==0 and down==0 then
-        state.escape=false
-        state.hasPushed=false
-        action,tactic="RESUME","NONE"
-    elseif standing==0 and state.escape then
-        -- Fuga solo iniciada por uma horda nao muda para stomp automaticamente.
-        action,tactic="FLEE","SOLO_ESCAPE"
-    elseif standing==0 then
-        tactic="FINISH_DOWNED"
-        local dist=input.nearestDownDistance
-        if not valid(dist) then action="WAIT"
-        elseif dist>T.STOMP_RANGE then action="PIN"
-        elseif input.downVisible==true then action="STOMP"
-        else action="WAIT" end
-    else
-        local d=input.nearestDistance
-        local visible=input.visible==true
-        if input.ally==true then state.escape=false end
-        if standing>=3 and input.ally~=true then state.escape=true end
-        if state.escape then
-            tactic="SOLO_ESCAPE"
-            -- Empurrar uma vez ao alcance, depois fugir. Se nao der:
-            -- fugir imediatamente (nunca atacar trio sem apoio).
-            if visible and valid(d) and d<=T.SHOVE_RANGE and
-               state.last~="SHOVE" and state.last~="FLEE" then
-                action="SHOVE"
-            else action="FLEE" end
-        elseif standing>=3 then
-            tactic="SUPPORTED_CONTROL"
-            if state.last=="SHOVE" then
-                action="BACKSTEP"
-            elseif state.last=="BACKSTEP" then
-                action="WAIT"
-            elseif valid(d) and d<=T.SHOVE_RANGE and visible then
-                action="SHOVE"
-            elseif not visible or (state.hasPushed and valid(d) and
-                d>T.SHOVE_RANGE) then
-                action="WAIT" -- depois de empurrar, deixar o zumbi se aproximar
-            else action="APPROACH" end
-        else
-            tactic="SINGLE_CONTROL"
-            if state.last=="SHOVE" then
-                action="BACKSTEP"
-            elseif not visible then
-                action="WAIT"
-            elseif state.last=="BACKSTEP" then
-                action="WAIT"
-            elseif valid(d) and d<=T.SHOVE_RANGE then
-                action="SHOVE"
-            elseif state.hasPushed then
-                action="WAIT" -- nao correr atras apos recuar
-            elseif state.last=="APPROACH" then
-                action="WAIT"
-            else action="APPROACH" end
-        end
-    end
-    if action=="SHOVE" then
-        state.cycles=(state.cycles or 0)+1
-        state.hasPushed=true
-    end
-    state.last,state.tactic=action,tactic
-    return action,tactic
+ elseif o.mustRetreat or state.escape then
+    state.escape=true
+    tactic="ESCAPE"
+    if standing>0 and good(dist) and dist<=0.95 and
+       state.last~="SHOVE" then
+       action="SHOVE" -- one emergency push to create space
+    else action="FLEE" end
+ elseif standing>=3 then
+    tactic="SUPPORTED"
+    if state.last=="SHOVE" then action="BACKSTEP"
+    elseif state.last=="BACKSTEP" and good(dist) and dist>T.SHOVE_RANGE then
+       action="WAIT"
+    elseif good(dist) and dist<=T.SHOVE_RANGE and o.visible then
+       action="SHOVE"
+    elseif good(dist) and dist<=5.5 then action="APPROACH"
+    else action="WAIT" end
+ elseif standing>0 then
+    tactic="SUSTAINED_SHOVE"
+    if state.last=="BACKSTEP" and good(dist) and dist>T.SHOVE_RANGE then
+       action="WAIT"
+    elseif good(dist) and dist<=T.SHOVE_RANGE and o.visible then
+       if (state.failedShoves or 0)>=4 and dist<0.8 then
+          action="BACKSTEP";state.failedShoves=0
+       else action="SHOVE" end
+    elseif good(dist) and dist<=8 then
+       action="APPROACH"
+    else action="WATCH" end
+ elseif down>0 then
+    tactic="FINISH_DOWNED"
+    local d=o.nearestDownDistance
+    if not good(d) then action="WAIT"
+    elseif d>T.STOMP_RANGE then action="PIN"
+    elseif o.downVisible==true then action="STOMP"
+    else action="WAIT" end
+ end
+ if action=="SHOVE" then state.cycles=(state.cycles or 0)+1 end
+ state.last=action
+ return action,tactic
 end
 return T
