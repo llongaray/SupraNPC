@@ -132,6 +132,23 @@ local function onTick()
     if data.spawnStatus == "pending_human" or
        data.spawnStatus == "retry_human" then
         spawnStep(player, data)
+    elseif data.spawnStatus == "human_spawned" then
+        -- Reanexar objetos do mundo ao renderizador ao recarregar o save,
+        -- sem criar clones em caso de entidades nao persistidas.
+        local cell = getCell and getCell()
+        for _, profile in ipairs(data.roster.profiles or {}) do
+            if profile.humanSpawned and not Adapter.get(profile.id) then
+                local existing = Adapter.findExisting(cell, profile.id)
+                if existing then
+                    Adapter.attach(profile.id, existing)
+                    Core.log("NPC reanexado ao render: " .. profile.id)
+                end
+            end
+        end
+        if Boot.lastNotice ~= data.spawnStatus then
+            Core.log("Equipe: human_spawned; restore de entidade apos reload ainda experimental")
+            Boot.lastNotice = data.spawnStatus
+        end
     elseif data.spawnStatus ~= Boot.lastNotice then
         Core.log("Equipe: estado=" .. tostring(data.spawnStatus) ..
             " gerados=" .. tostring(data.spawnedCount or 0))
