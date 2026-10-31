@@ -245,7 +245,12 @@ function D.update(entry,player,team)
  -- simply because the NPC turned away from the vision cone.
  local memory=false
  local rememberedThreat=nil
- if old and type(old.retreatThreats)=="table" then
+ -- Do not retain an unseen group forever: after ~4.5 seconds without
+ -- confirmed perception, drop its remembered position. The zombie object
+ -- staying loaded/alive alone is not evidence of current danger.
+ local recent=old and type(old.lastThreatSeenAt)=="number" and
+    (now()-old.lastThreatSeenAt)<4500
+ if recent and old and type(old.retreatThreats)=="table" then
     for _,z in ipairs(old.retreatThreats) do
        if zombie(z) then
           local d=Perception.distance(actor,z)
@@ -286,12 +291,18 @@ function D.update(entry,player,team)
  end
  Orders.evaluate(entry.state,{selfThreat=not danger.retreat,mustRetreat=danger.retreat})
  if danger.retreat then
-    if type(obs.visibleTargets)=="table" and #obs.visibleTargets>=3 then
-        old.retreatThreats=obs.visibleTargets
-    elseif not old.retreatThreats then
-        old.retreatThreats={obs.nearest or obs.firstVisible or obs.nearestDown}
+    -- Refresh the timestamp ONLY when a threat is actually perceived.
+    -- A frame driven purely by memory must not renew itself indefinitely.
+    if visible>0 then
+       old.lastThreatSeenAt=now()
+       if type(obs.visibleTargets)=="table" and #obs.visibleTargets>0 then
+          old.retreatThreats=obs.visibleTargets
+       else old.retreatThreats={obs.nearest or obs.firstVisible or obs.nearestDown} end
     end
- else old.retreatThreats=nil end
+ else
+    old.retreatThreats=nil
+    old.lastThreatSeenAt=nil
+ end
  local nowMs=now()
  if type(health)=="number" and health<55 then
     Speech.npcAlert(actor,"HELP")
