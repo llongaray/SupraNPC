@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.13-dev — autodefesa prioritária contra zumbis, interrupção e retomada das ordens.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.14-dev — táticas de combate: empurrar/recuar, aproximar de zumbi caído, fuga sozinho e apoio com aliados.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -48,6 +48,22 @@ Ataque **corpo a corpo**, com arma equipada ou `Base.BareHands` nativa se dispon
 **Limitações:** a aplicação de dano real, animação e retomada de locomoção na engine 42.13.1 **não foram validadas in-game**. Testes de unidade do motor determinístico passam, mas não atestam dano efetivo no jogo. Nenhuma arma ou entidade de zumbi é criada pelo mod. Não há combate com armas de fogo, esquiva ou estratégia de múltiplos inimigos nesta versão.
 
 [Checklist de combate](docs/TEST_CHECKLIST_0.1.13.md) e referências ao código de Super Survivors, PZNS e KnoxSurvivors.
+
+## Combate tático de sobrevivência — 0.1.14-dev
+
+A nova máquina determinística `CombatTactics.lua` substitui a política anterior de atacar todo zumbi assim que estivesse próximo.
+
+- **1 ou 2 zumbis de pé:** empurrar e reavaliar. Se o inimigo não cair, recuar, esperar e tentar novamente.
+- **Zumbi caído:** aproximar até alcance de finalização; somente golpear se não houver zumbis em pé próximos. Se ele começar a levantar, suspender a finalização.
+- **3 ou mais zumbis sem ajuda:** empurrar para abrir espaço, depois fugir para um tile carregado seguro, inclusive quando algum cair.
+- **3 ou mais zumbis com jogador ou outro NPC vivo perto:** alternar empurrão/recuo/espera até deixar de haver zumbis em pé, depois finalizar os caídos.
+- **Retorno à tarefa:** FOLLOW, GUARD ou IDLE continuam salvos durante a emergência e são retomados assim que não houver ameaças visíveis no raio.
+
+O módulo só conta zumbis reais `IsoZombie` vivos e visíveis. O jogador e outros NPCs nunca são alvos selecionados. Não usa IA neural ou modelos externos.
+
+**Limitações a validar na B42.13.1:** o empurrão usa a API de queda `knockDown` com chance e só aceita o estado de queda ao observá-lo; a animação original de shove não está comprovada. `PIN` aproxima o NPC do corpo, mas ainda não garante impedir que o zumbi levante por colisão. `STOMP` usa dano direcionado ao zumbi, mas a animação de pisoteio também precisa de validação. A movimentação física e a estratégia com vários NPCs continuam experimentais.
+
+[Checklist específico da 0.1.14-dev](docs/TEST_CHECKLIST_0.1.14.md).
 
 ## Estado das funcionalidades
 
