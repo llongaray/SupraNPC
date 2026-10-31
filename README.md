@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.15-dev — visão em cone, avaliação de armas e risco por equipe, empurrões persistentes, fuga antecipada e diálogos dos NPCs.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.16-dev — ataque nativo experimental para golpe/empurrão/pisão, interceptação agressiva, percepção corpo a corpo e ordens ditadas com Win+H no Windows 11.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -64,6 +64,18 @@ O módulo só conta zumbis reais `IsoZombie` vivos e visíveis. O jogador e outr
 **Limitações a validar na B42.13.1:** o empurrão usa a API de queda `knockDown` com chance e só aceita o estado de queda ao observá-lo; a animação original de shove não está comprovada. `PIN` aproxima o NPC do corpo, mas ainda não garante impedir que o zumbi levante por colisão. `STOMP` usa dano direcionado ao zumbi, mas a animação de pisoteio também precisa de validação. A movimentação física e a estratégia com vários NPCs continuam experimentais.
 
 [Checklist específico da 0.1.14-dev](docs/TEST_CHECKLIST_0.1.14.md).
+
+## Atualizações 0.1.16-dev — ataque nativo e comandos ditados
+
+**Correção após teste real da 0.1.15:** o zumbi caía, mas NPC não o finalizava, e a postura AGGRESSIVE não influenciava a estratégia. Agora `NPCNativeAttack.lua` tenta usar **`IsoPlayer:DoAttack(1.0)`** em lugar da alteração manual de vida de `IsoZombie`: próximo em pé = empurrar; com arma melee a uma distância segura = golpear; no chão = selecionar ataque descendente pelo motor. A implementação respeita animação em andamento, oclusão, alcance, aliados no arco de ataque e somente NPCs do mod. **A B42.13.1 ainda precisa comprovar se esse `DoAttack` é funcional para NPC IsoPlayer não controlado.** O fallback de testes não substitui a animação da engine.
+
+- Postura PASSIVE só intercepta a curta distância (~2.2 tiles); DEFENSIVE a ~5; AGGRESSIVE até ~9, interrompendo FOLLOW para tentar aproximar e atacar. Risco de horda mantém prioridade sobre perseguir.
+- Reconhecimento de zumbis a curta distância considera tiles adjacentes não bloqueados mesmo se o NPC estiver de costas, sem detecção atravessando paredes.
+- `VoiceCommands.lua` interpreta frases PT-BR como **"Yong, me segue"**, **"Todos, me sigam"**, **"Yong, aguarde aqui"**, **"Yong, guarda aqui"** e **"Alex, postura agressiva"**. O HUD tem campo **COMANDO DE VOZ (WIN+H)** com envio por Enter: no Windows 11, o jogador pode usar o ditado do sistema (Win+H), exigindo Internet e microfone. O NPC responde em texto. **Não é um microfone em escuta contínua dentro do jogo.**
+- A inspiração de diálogos contextuais vem de [Conditional Speech](https://github.com/Chuckleberry-Finn/zomboid-cnd-speech), que **gera frases textuais condicionais**; ele não faz reconhecimento de fala. Implementação própria, sem copiar seus arquivos.
+- Testes adicionais `native_attack_spec.lua` e `voice_commands_spec.lua` na CI.
+
+[Checklist e instruções de teste B42.13.1](docs/TEST_CHECKLIST_0.1.16.md).
 
 ## Correções após o teste real da 0.1.14 (v0.1.15-dev)
 
