@@ -34,6 +34,8 @@ function V.parse(phrase,profiles)
     cmd,option="STANCE","DEFENSIVE"
  elseif has(w,{"postura passiva","modo passivo","fica passivo","passivo"}) then
     cmd,option="STANCE","PASSIVE"
+ elseif has(w,{"volta para base","voltem para base","retorna para base","retorne para base","vai para casa","corram para base","fujam para base"}) then
+    cmd="RETURN_BASE"
  elseif has(w,{"guarda minha posicao","protege minha posicao","vigia onde estou","guarda meu local"}) then
     cmd,option="GUARD","PLAYER"
  elseif has(w,{"guarda aqui","guarde aqui","vigia aqui","protege esta posicao","guarde essa posicao"}) then
