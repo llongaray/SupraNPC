@@ -100,10 +100,10 @@ function A.execute(actor,target,kind,player,team)
         actor:setAuthorizedHandToHand(true)
     end
     if actor.setAuthorizeShoveStomp then
-        actor:setAuthorizeShoveStomp(true)
+        pcall(function() actor:setAuthorizeShoveStomp(true) end)
     end
     if actor.setAuthorizeMeleeAction then
-        actor:setAuthorizeMeleeAction(true)
+        pcall(function() actor:setAuthorizeMeleeAction(true) end)
     end
     -- Short range/ground use normal attack selection. For a close standing
     -- zombie, request shove explicitly; do not simulate knockDown().
