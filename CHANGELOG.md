@@ -1,4 +1,15 @@
 # Changelog — SupraNPC
+## 0.1.25-dev — 2026-10-31
+
+- Corrigido intervalo excessivo entre empurroes/ataques no modo agressivo, observado nas capturas: NPC e mordido enquanto parece esperar para reagir.
+- O controlador verifica o alvo de combate **a cada OnTick** (antes a cada 3 ticks); a varredura do mundo e o planejamento permanecem a cada 15 ticks para desempenho.
+- Remove cooldown arbitrario de 260ms entre requisicoes aceitas. Um handoff curto de 35ms permite o inicio da animacao; `isAttacking/isAttackStarted` continuam impedindo golpes sobrepostos. Ataques so ocorrem quando o motor sinalizar disponibilidade.
+- Retira o bloqueio adicional de 180ms da maquina de taticas AGGRESSIVE e o atraso de 550ms na checagem da aproximacao.
+- Autoriza `setAuthorizedHandToHandAction(true)` e `setAuthorizedHandToHand(true)` em NPC IsoPlayer antes de `DoAttack` quando a API existir, para habilitar os dois niveis de permissao da B42.
+- Telemetria `COMBAT_PULSE` agrupa requisicoes aceitas, status de queda e vida do alvo a cada ~2s, permitindo distinguir comando aceito de dano real. Logs de ataques aceitos nao sao mais emitidos a cada tentativa.
+- Testes cobrem pulso/animacao e chamada por tick no controlador.
+- **Nao validado dentro do jogo**: se `IsoPlayer:DoAttack` do ator extra realmente produz colisao e dano na B42.13.1. Nunca simular dano silenciosamente. Pedir novo console.txt se o zumbi continuar mordendo sem cair.
+
 ## 0.1.24-dev — 2026-10-31
 
 - Corrigida a regressao do PTT: B42 atribui Mouse Btn 3 ao ID `10003` (offset do mouse). `VoiceHotkey.lua` agora aceita `10000..10007`, consulta `Mouse.isButtonDown` com transicoes pressionar/soltar e exibe `MOUSE BTN 3`; nunca chama `Keyboard.getKeyName(10003)`.
