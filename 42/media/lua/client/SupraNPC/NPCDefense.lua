@@ -183,7 +183,10 @@ local function moveAway(entry,threat,step,reason)
 end
 function D.reset(id)
     local record=D.STATES[id]
-    if record and record.entry then cancel(record.entry,"combat reset") end
+    if record and record.entry then
+        cancel(record.entry,"combat reset")
+        if NativeAttack.release then NativeAttack.release(record.entry.actor) end
+    end
     D.STATES[id]=nil
 end
 function D.clear()
@@ -339,6 +342,7 @@ function D.update(entry,player,team)
        Orders.evaluate(entry.state,{})
        entry.navStatus="RESUMING"
        D.STATES[id]=nil
+       if NativeAttack.release then NativeAttack.release(actor) end
        Speech.npcAlert(actor,"RESUME")
        Core.log("DEFENSE "..id.." concluida; retomando "..entry.state.requested)
     end
