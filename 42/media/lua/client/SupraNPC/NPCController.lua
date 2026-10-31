@@ -272,20 +272,17 @@ function Controller.update(player)
     Controller.ticks=Controller.ticks+1
     Walking.update()
     if not player then return end
-    -- Scan/plan every 15 ticks; combat pulses run every 3 ticks using the
-    -- cached target, not another expensive full zombie scan.
-    if Controller.ticks%15~=0 then
-        if Controller.ticks%3==0 then
-            for id,entry in pairs(Controller.entries) do
-                if entry.stance=="AGGRESSIVE" and Defense.STATES[id] and
-                   Adapter.get(id)==entry.actor and
-                   call(entry.actor,"isDead")==false then
-                    Defense.pulse(entry,player,Controller.entries)
-                end
-            end
+    -- Every engine tick checks the cached melee target (no world scan).
+    -- Animation state controls when a new blow can actually start.
+    -- Path planning and zombie perception remain at 15-tick cadence.
+    for id,entry in pairs(Controller.entries) do
+        if entry.stance=="AGGRESSIVE" and Defense.STATES[id] and
+           Adapter.get(id)==entry.actor and
+           call(entry.actor,"isDead")==false then
+            Defense.pulse(entry,player,Controller.entries)
         end
-        return
     end
+    if Controller.ticks%15~=0 then return end
     for id,entry in pairs(Controller.entries) do
         if Adapter.get(id)==entry.actor and
            call(entry.actor,"isDead")~=true then
