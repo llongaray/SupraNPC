@@ -87,7 +87,8 @@ function P.observe(actor,player,team)
   nearest=nil,nearestDistance=nil,nearestDown=nil,nearestDownDistance=nil,
   visible=false,downVisible=false,ally=false,allies=0,groupPower=0,
   armed=0,unarmed=0,npcWeapon=P.equipment(actor),
-  nearestThreat=nil,firstVisible=nil,alertDistance=nil,visibleTargets={}}
+  nearestThreat=nil,firstVisible=nil,alertDistance=nil,visibleTargets={},
+  urgentTarget=nil,urgentDistance=nil,urgentPlayerDistance=nil}
  if not actor or call(actor,"isDead")~=false then return result end
  local allies={}
  local function addAlly(candidate)
@@ -140,6 +141,15 @@ function P.observe(actor,player,team)
           if not result.nearestDistance or d<result.nearestDistance then
              result.nearestDistance=d;result.nearest=target;result.visible=true
           end
+          -- A zombie grappling the player is a priority rescue target.
+          -- Still require actual perception and a loaded, nearby tile.
+          local pd=player and distance(player,target)
+          if pd and pd<=1.6 and
+             (not result.urgentPlayerDistance or pd<result.urgentPlayerDistance) then
+             result.urgentTarget=target
+             result.urgentDistance=d
+             result.urgentPlayerDistance=pd
+          end
        end
     end
  end
@@ -168,6 +178,14 @@ function P.observe(actor,player,team)
           end
        end
     end
+ end
+ -- If no zombie is currently at striking distance of this NPC, rescue
+ -- the player from a nearby attacker before pursuing another target.
+ if result.urgentTarget and
+    (not result.nearestDistance or result.nearestDistance>1.65) then
+    result.nearest=result.urgentTarget
+    result.nearestDistance=result.urgentDistance
+    result.visible=true
  end
  return result
 end
