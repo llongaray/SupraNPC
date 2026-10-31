@@ -30,11 +30,20 @@ function Speech.compose(name,cmd,option,success)
     count=count+1
     return string.format(phrases[(count-1)%#phrases+1],short)
 end
-local function show(actor,message)
+local function show(actor,message,immediate)
     if not actor or not message or message=="" then return end
     local at=now()
     for _,r in ipairs(Speech.active) do
         if r.actor==actor then
+            if immediate then
+                -- Ordens diretas recebem resposta visual imediatamente;
+                -- alertas antigos nao atrasam a confirmacao do NPC.
+                r.text=message
+                r.created=at
+                r.expires=at+math.max(2600,math.min(8000,#message*90))
+                r.queue={}
+                return
+            end
             if #r.queue>=2 then table.remove(r.queue,1) end
             r.queue[#r.queue+1]=message
             return
@@ -48,7 +57,7 @@ local function show(actor,message)
 end
 function Speech.playerCommand(player,name,cmd,option,success)
     if not player then return end
-    show(player,Speech.compose(name,cmd,option,success))
+    show(player,Speech.compose(name,cmd,option,success),true)
 end
 local NPC_ANSWERS={
     FOLLOW={"Estou indo!","Estou com voce!"},
@@ -74,11 +83,11 @@ function Speech.npcReply(actor,cmd,option,success)
     if not actor then return end
     local key=cmd=="STANCE" and option or cmd
     local responses=NPC_ANSWERS[key]
-    if success==false then show(actor,"Nao consigo cumprir essa ordem!") return end
-    if not responses then show(actor,"Entendido!") return end
+    if success==false then show(actor,"Nao consigo cumprir essa ordem!",true) return end
+    if not responses then show(actor,"Entendido!",true) return end
     local n=(lastSaid[actor] or 0)+1
     lastSaid[actor]=n
-    show(actor,responses[(n-1)%#responses+1])
+    show(actor,responses[(n-1)%#responses+1],true)
 end
 function Speech.npcAlert(actor,kind,force)
     if not actor or not WARNINGS[kind] then return false end
