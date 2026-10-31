@@ -5,6 +5,7 @@ local Roster = require("SupraNPC/Roster")
 local TeamSetup = require("SupraNPC/TeamSetup")
 local TeamFlow = require("SupraNPC/TeamFlow")
 local Adapter = require("SupraNPC/SpawnAdapter")
+local InputIsolation = require("SupraNPC/NPCInputIsolation")
 local Renderer = require("SupraNPC/Renderer")
 local Controller = require("SupraNPC/NPCController")
 local Recovery = require("SupraNPC/NPCRecovery")
@@ -14,7 +15,8 @@ local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 local Boot = { ticks = 0, lastNotice = nil, interval = 90, maxRetries = 3 }
 
 local function currentPlayer()
-    return getSpecificPlayer and getSpecificPlayer(0) or nil
+    local current=getSpecificPlayer and getSpecificPlayer(0) or nil
+    return InputIsolation.getOwner(current)
 end
 
 local function storeNewRoster(player)
@@ -192,6 +194,7 @@ local function onGameStart()
     NPCUI.close()
     MapKnowledge.reset()
     local player = currentPlayer()
+    if player then InputIsolation.remember(player) end
     if player and player.getModData then
         if Core.pendingRoster then storeNewRoster(player) end
         local data = player:getModData().SupraNPC
