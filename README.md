@@ -1,8 +1,8 @@
 # SupraNPC
 
-**Versão atual: 0.1.26-dev — correcoes da visao dos zumbis, sinal de empurrao e flags de dano para NPCs IsoPlayer.** O reconhecimento por microfone **ainda não está integrado**: o motor Lua do jogo não oferece speech-to-text. O painel indica `MIC SEM STT` em vez de fingir que está gravando. Enviar um comando por texto faz o NPC responder sem aguardar alertas antigos. [Documentação de comandos](docs/VOICE_COMMANDS.md).
+**Versão atual: 0.1.27-dev — isolamento dos comandos do jogador e ponte PT-BR offline.** A IA de movimento do NPC continua experimental; o novo `NPCInputIsolation` evita que o IsoPlayer secundário utilize teclado/mouse do jogador e mantém o player local 0. Para **falar de verdade** é necessário iniciar o programa portátil `SupraNPCVoice.exe` (modelo Whisper incluído) enquanto o jogo estiver aberto. Sem ele o HUD mostra `STT PENDENTE`. Veja [instalação da voz](docs/VOICE_BRIDGE.md) e [comandos](docs/VOICE_COMMANDS.md). **Ambos os recursos exigem validação real no jogo B42.13.1.**
 
-**Novidades 0.1.22:** o estado AGGRESSIVE não usa mais a pausa SHOVE/BACKSTEP/WAIT; enquanto o NPC combate, um pulso leve revisita o alvo a cada 3 ticks, sincronizado com a animação nativa e sem nova varredura de mundo. Zumbis atacando o jogador recebem prioridade, exceto quando o próprio NPC está em perigo imediato. **Experimental:** não é promessa de imunidade a mordidas, animação correta ou dano real; é indispensável validar no jogo B42.13.1 e anexar console.txt se ainda houver falhas.
+**Novidades 0.1.22:** o estado AGGRESSIVE não usa mais a pausa SHOVE/BACKSTEP/WAIT; enquanto o NPC combate, um pulso leve revisita o alvo a cada tick, sincronizado com a animação nativa e sem nova varredura de mundo. Zumbis atacando o jogador recebem prioridade, exceto quando o próprio NPC está em perigo imediato. **Experimental:** não é promessa de imunidade a mordidas, animação correta ou dano real; é indispensável validar no jogo B42.13.1 e anexar console.txt se ainda houver falhas.
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
