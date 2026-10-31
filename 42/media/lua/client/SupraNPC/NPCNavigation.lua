@@ -97,6 +97,45 @@ function N.clear(id)
 end
 -- Opening a window does not authorize a crossing (climbing not supported).
 -- Called only in a local, already-failed route; one attempt then use detour.
+local function zombiesNear(actor,radius)
+ local cell=getCell and getCell()
+ local list=call(cell,"getZombieList")
+ local size=call(list,"size")
+ if type(size)~="number" then return false end
+ local ax,ay=call(actor,"getX"),call(actor,"getY")
+ for i=0,math.min(size,350)-1 do
+  local z=call(list,"get",i)
+  if z and call(z,"isDead")==false then
+   local zx,zy=call(z,"getX"),call(z,"getY")
+   if valid(zx) and valid(zy) and valid(ax) and valid(ay) and
+      (zx-ax)^2+(zy-ay)^2<radius*radius then return true end
+  end
+ end
+ return false
+end
+function N.tryClimbWindow(id,actor,edge,opposite)
+ if not edge or edge.kind~="WINDOW" or not edge.object then
+   return false,"not a window"
+ end
+ local win=edge.object
+ if not edge.open or N.isIgnored(id,win) or
+     call(win,"isBarricaded")==true or call(win,"isLocked")==true or
+     call(win,"isPermaLocked")==true or
+     (call(win,"isSmashed")==true and
+      call(win,"isGlassRemoved")~=true) then
+   return false,"window unsafe or closed"
+ end
+ if not opposite or call(opposite,"TreatAsSolidFloor")~=true or
+    call(opposite,"isFree",false)~=true then return false,"opposite blocked" end
+ if call(win,"canClimbThrough",actor)~=true then
+   return false,"climb rejected" end
+ if zombiesNear(actor,3) then return false,"zombies near window" end
+ if not actor or not actor.climbThroughWindow then return false,"climb unavailable" end
+ local ok,err=pcall(function() actor:climbThroughWindow(win) end)
+ N.ignore(id,win) -- no repeated climb until the engine finishes or cooldown expires
+ if not ok then return false,tostring(err) end
+ return true,"window climbing"
+end
 function N.tryNearbyWindow(actor,tx,ty,id)
  local cell=getCell and getCell()
  if not cell then return false end
@@ -111,12 +150,12 @@ function N.tryNearbyWindow(actor,tx,ty,id)
  for _,dir in ipairs(dirs) do
    local neighbor=call(cell,"getGridSquare",x+dir[1],y+dir[2],z)
    local edge=N.edge(sq,neighbor)
-   if edge.kind=="WINDOW" and edge.canTry and
-       not N.isIgnored(id,edge.object) then
-     local ok,reason=N.tryOpen(id,actor,edge)
-     -- Even opened windows require a separate climbing mechanic.
-     N.ignore(id,edge.object)
-     return ok,ok and "window opened; reroute" or reason
+   if edge.kind=="WINDOW" and not N.isIgnored(id,edge.object) then
+     if edge.open then
+       return N.tryClimbWindow(id,actor,edge,neighbor)
+     elseif edge.canTry then
+       return N.tryOpen(id,actor,edge)
+     end
    end
  end
  return false
@@ -131,7 +170,7 @@ end
 local dirs={{1,0},{0,1},{-1,0},{0,-1}}
 -- Bounded search: only loaded squares, no diagonals through corners.
 -- Returns a one-tile waypoint; retries the route after an opened door.
-function N.next(actor,tx,ty,tz,id,free,range,avoidPortals)
+function N.next(actor,tx,ty,tz,id,free,range,avoidPortals,avoidZombies)
  if not actor or not getCell or not valid(tx) or not valid(ty) or
     not valid(tz) or type(free)~="function" then return nil,"invalid goal" end
  local cell=getCell()
@@ -143,6 +182,28 @@ function N.next(actor,tx,ty,tz,id,free,range,avoidPortals)
  local start=call(cell,"getGridSquare",bx,by,z)
  if not start then return nil,"unloaded starting square" end
  local limit=N.repathRadius
+ local danger=nil
+ if avoidZombies then
+  local zs=call(cell,"getZombieList")
+  local n=call(zs,"size")
+  if type(n)=="number" then
+   danger={}
+   for i=0,math.min(n,400)-1 do
+    local z=call(zs,"get",i)
+    if z and call(z,"isDead")==false then
+     local x,y=call(z,"getX"),call(z,"getY")
+     if valid(x) and valid(y) then danger[#danger+1]={x=x,y=y} end
+    end
+   end
+  end
+ end
+ local function safeTile(x,y)
+  if not danger then return true end
+  for _,z in ipairs(danger) do
+   if (z.x-x-0.5)^2+(z.y-y-0.5)^2<2.0^2 then return false end
+  end
+  return true
+ end
  local q={{sq=start,x=bx,y=by,parent=nil,portal=nil}}
  local first,last=1,1
  local marked={[bx..":"..by]=true}
@@ -169,7 +230,7 @@ function N.next(actor,tx,ty,tz,id,free,range,avoidPortals)
      if not marked[key] and math.abs(x-bx)+math.abs(y-by)<=limit then
        marked[key]=true
        local sq=call(cell,"getGridSquare",x,y,z)
-       if sq and (free(sq,actor) or
+       if sq and safeTile(x,y) and (free(sq,actor) or
           (math.floor(tx)==x and math.floor(ty)==y)) then
          local yes,e=N.canCross(node.sq,sq,id,not avoidPortals)
          if yes then
@@ -181,7 +242,10 @@ function N.next(actor,tx,ty,tz,id,free,range,avoidPortals)
    end
  end
  if not reached and math.sqrt((bx+0.5-tx)^2+(by+0.5-ty)^2)<limit-2 then
-    if not avoidPortals then N.tryNearbyWindow(actor,tx,ty,id) end
+    if not avoidPortals then
+       local worked,reason=N.tryNearbyWindow(actor,tx,ty,id)
+       if worked then return nil,reason end
+    end
     return nil,"no accessible route"
  end
  if not best or best==q[1] then
