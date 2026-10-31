@@ -238,8 +238,8 @@ function D.shove(actor,target)
     end
     -- Chance de desequilibrio: o zumbi pode continuar de pe.
     local chance=math.min(85,50+strength*3)
-    local roll=ZombRand and ZombRand(100)
-    if not finite(roll) then return false,"RNG do jogo indisponivel" end
+    local okRoll,roll=pcall(function() return ZombRand and ZombRand(100) end)
+    if not okRoll or not finite(roll) then return false,"RNG do jogo indisponivel" end
     pcall(function() if actor.faceThisObject then actor:faceThisObject(target) end end)
     if roll>=chance then
         Core.log("TACTIC shove resisted / zombie remains standing")
