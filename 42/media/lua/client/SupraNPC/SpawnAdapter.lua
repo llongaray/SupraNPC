@@ -3,6 +3,7 @@
 -- Este modulo trata de spawn e ownership, NAO da logica de IA.
 local Core = require("SupraNPC/Constants")
 local Wardrobe = require("SupraNPC/Wardrobe")
+local CombatFlags = require("SupraNPC/NPCCombatFlags")
 local Adapter = { MODE = "iso_player", actors = {}, attempt = 0 }
 
 local OFFSETS = {
@@ -99,6 +100,7 @@ end
 function Adapter.attach(id, actor)
     if not id or not actor then return false end
     Adapter.actors[id] = actor
+    CombatFlags.configure(actor,id)
     return true
 end
 
@@ -230,7 +232,6 @@ function Adapter.spawn(player, profile, reserved)
         actor = assert(IsoPlayer.new(cell, desc,
             square:getX(), square:getY(), square:getZ()), "IsoPlayer.new nil")
         assert(call(actor, "getBodyDamage"), "IsoPlayer sem BodyDamage")
-        call(actor, "setNPC", true)
         local md = assert(call(actor, "getModData"), "NPC sem ModData")
         md.SupraNPC_IsNPC = true
         md.SupraNPC_ID = profile.id
@@ -238,6 +239,7 @@ function Adapter.spawn(player, profile, reserved)
         md.SupraNPC_Profession = profile.profession
         md.SupraNPC_Order = profile.order or "FOLLOW"
         md.SupraNPC_Engine = "IsoPlayer"
+        CombatFlags.configure(actor,profile.id)
         dressFromProfile(actor, profile)
         place(actor, square)
         call(actor, "resetModelNextFrame")
