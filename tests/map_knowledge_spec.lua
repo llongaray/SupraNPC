@@ -33,4 +33,19 @@ M.reset()
 MapItem=nil
 assert(not M.update(player))
 assert(M.get(player).base==nil)
+-- B42/UIWorldMap wrapper may be the only way to obtain world coordinates.
+ISWorldMap={instance={getAPI=function() return {
+ getSymbolsAPI=function() return {
+  getSymbolCount=function() return 2 end,
+  getSymbolByIndex=function(_,i)
+   return {isText=function() return true end,
+      getUntranslatedText=function() return i==0 and "NPC:BASE:A" or "NPC:BASE:B" end,
+      getWorldX=function() return i==0 and 44 or 50 end,
+      getWorldY=function() return i==0 and 60 or 66 end}
+  end}
+ end}
+end}}
+assert(M.update(player))
+assert(M.get(player).base.x1==44 and M.get(player).base.x2==50)
+ISWorldMap=nil
 print("[SupraNPC] map_knowledge_spec: OK")
