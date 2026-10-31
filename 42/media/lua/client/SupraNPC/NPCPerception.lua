@@ -74,7 +74,7 @@ function P.observe(actor,player,team)
   nearest=nil,nearestDistance=nil,nearestDown=nil,nearestDownDistance=nil,
   visible=false,downVisible=false,ally=false,allies=0,groupPower=0,
   armed=0,unarmed=0,npcWeapon=P.equipment(actor),
-  nearestThreat=nil,firstVisible=nil}
+  nearestThreat=nil,firstVisible=nil,alertDistance=nil}
  if not actor or call(actor,"isDead")~=false then return result end
  local allies={}
  local function addAlly(candidate)
@@ -104,7 +104,10 @@ function P.observe(actor,player,team)
     local d,dx,dy=distance(actor,target)
     if not d or not P.canPerceive(actor,target,d,dx,dy) then return end
     result.seen=result.seen+1
-    if not result.firstVisible then result.firstVisible=target end
+    if not result.alertDistance or d<result.alertDistance then
+        result.alertDistance=d
+        result.firstVisible=target
+    end
     if isDown(target) then
        result.down=result.down+1
        if d<=P.THREAT_RANGE then
@@ -155,6 +158,10 @@ end
 -- Decision heuristic; these are not measured death probabilities.
 function P.risk(obs,health)
  local count=obs.nearStanding or 0
+ local distant=obs.standing or count
+ if distant>=3 and obs.alertDistance and obs.alertDistance<=10 then
+    count=math.max(count,distant)
+ end
  local strength=obs.groupPower or 0.8
  local unarmedGroup=(obs.npcWeapon and obs.npcWeapon.category~="MELEE") and
      (obs.armed or 0)==0
