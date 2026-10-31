@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.12-dev — movimentação por TimedAction nativa, comandos por NPC, falas do jogador e leitura B42 de fome/sede/dor/energia.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.13-dev — autodefesa prioritária contra zumbis, interrupção e retomada das ordens.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -36,6 +36,18 @@ O teste in-game da 0.1.11 confirmou **roupas completas e retratos 3D**, mas os N
 **ATENÇÃO:** testes de Lua 5.1 e mocks não simulam a engine. Movimentação e áudio/texto em jogo continuam pendentes de validação na B42.13.1; não é uma correção confirmada até o próximo teste real. A ordem "postura agressiva" ainda não implementa combate.
 
 Checklist: [TEST_CHECKLIST_0.1.12.md](docs/TEST_CHECKLIST_0.1.12.md). Use apenas save descartável.
+
+## Autodefesa prioritária — 0.1.13-dev
+
+**Novo:** módulo `NPCDefense.lua`, comportamento Lua determinístico de sobrevivência sem IA externa. Ele procura zumbis `IsoZombie` vivos e visíveis em raio curto, nunca jogadores ou outros NPCs, e interrompe qualquer tarefa para enfrentar o perigo.
+
+**Fluxo:** `FOLLOW` → `SELF_DEFEND` (temporário) → `FOLLOW` após desaparecer a ameaça. Também funciona com `IDLE` e `GUARD`, e preserva ordens novas dadas durante o combate. Interrupções de combate têm precedência sobre o submenu de posturas (Passiva, Defensiva e Agressiva ainda não mudam o estilo de luta).
+
+Ataque **corpo a corpo**, com arma equipada ou `Base.BareHands` nativa se disponível, usando `IsoZombie:Hit` e limites de alcance, visibilidade e cooldown. Aproximação limitada por `NPCWalking`, sem perseguição por todo o mapa. O ataque é alvo-específico, evitando acertar o jogador ou outros NPCs por uma seleção automática de alvo.
+
+**Limitações:** a aplicação de dano real, animação e retomada de locomoção na engine 42.13.1 **não foram validadas in-game**. Testes de unidade do motor determinístico passam, mas não atestam dano efetivo no jogo. Nenhuma arma ou entidade de zumbi é criada pelo mod. Não há combate com armas de fogo, esquiva ou estratégia de múltiplos inimigos nesta versão.
+
+[Checklist de combate](docs/TEST_CHECKLIST_0.1.13.md) e referências ao código de Super Survivors, PZNS e KnoxSurvivors.
 
 ## Estado das funcionalidades
 
