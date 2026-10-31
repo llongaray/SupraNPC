@@ -6,6 +6,9 @@ local Adapter = require("SupraNPC/SpawnAdapter")
 local Walking = require("SupraNPC/NPCWalking")
 local Defense = require("SupraNPC/NPCDefense")
 local Navigation = require("SupraNPC/NPCNavigation")
+local Movement = require("SupraNPC/NPCMovementStyle")
+local Territory = require("SupraNPC/Territory")
+local MapKnowledge = require("SupraNPC/NPCMapKnowledge")
 local Controller = {entries={},ticks=0}
 local STANCES = {PASSIVE=true, DEFENSIVE=true, AGGRESSIVE=true}
 local function call(obj,method,...)
@@ -39,6 +42,7 @@ function Controller.clear()
     for id in pairs(Controller.entries) do
         Walking.cancel(id,"limpeza")
         Navigation.clear(id)
+        Movement.clear(id,Controller.entries[id].actor)
     end
     Controller.entries,Controller.ticks={},0
 end
@@ -66,7 +70,8 @@ function Controller.get(id) return Controller.entries[id] end
 function Controller.order(id,command,player,which)
     local entry=Controller.entries[id]
     if not entry then return false,"NPC nao registrado" end
-    if command~="FOLLOW" and command~="IDLE" and command~="GUARD" then
+    if command~="FOLLOW" and command~="IDLE" and command~="GUARD" and
+       command~="RETURN_BASE" then
         return false,"Comando nao disponivel"
     end
     if command=="GUARD" then
@@ -132,7 +137,8 @@ local function walk(entry,square,target)
            result=="alcance de ataque" or result=="troca de zumbi" or
            result=="ameaça encerrada" or result=="combat reset" or
            result=="troca de fase combate" or
-           result=="player moved" then return end
+           result=="player moved" or
+           result=="base alcancada" then return end
         if result=="sucesso" then
             entry.navStatus=entry.state.requested=="GUARD" and "HOLD" or "ARRIVED"
             entry.navError=nil
@@ -178,10 +184,13 @@ local function tickFollow(entry,player)
     -- Walk in loaded, accessible steps; never choose a tile behind a closed
     -- window, locked door, wall or impassable fence.
     local square,reason=Navigation.next(actor,px,py,pz,
-        entry.profile.id,Walking.free,Core.DEFAULT_FOLLOW_DISTANCE)
+        entry.profile.id,Walking.free,Core.DEFAULT_FOLLOW_DISTANCE,false,true)
     if not square then
-        if reason=="already near" or reason=="door opened" then
-            entry.navStatus=reason=="door opened" and "OPEN_DOOR" or "NEAR"
+        if reason=="already near" or reason=="door opened" or
+           reason=="window opened" or reason=="window climbing" then
+            entry.navStatus=(reason=="window climbing" and "CLIMB_WINDOW" or
+                reason=="window opened" and "OPEN_WINDOW" or
+                reason=="door opened" and "OPEN_DOOR" or "NEAR")
         else
             entry.navStatus="REPATH"
             entry.navError=tostring(reason)
@@ -219,6 +228,34 @@ local function tickGuard(entry)
     if not square then fail(entry,"ponto de guarda bloqueado");return end
     walk(entry,square,{x=point.x,y=point.y})
 end
+local function tickReturnBase(entry,player)
+    local area=MapKnowledge.get(player)
+    local home=Territory.basePoint(area)
+    if not home then
+        entry.navStatus="NO_BASE"
+        return
+    end
+    local actor=entry.actor
+    local ax,ay,az=call(actor,"getX"),call(actor,"getY"),call(actor,"getZ")
+    if not finite(ax) or not finite(ay) or not finite(az) then return end
+    if Territory.inside(area,ax,ay,az) then
+        if Walking.active(entry.profile.id) then
+           Walking.cancel(entry.profile.id,"base alcancada")
+        end
+        entry.navStatus="AT_BASE"
+        return
+    end
+    if Walking.active(entry.profile.id) then return end
+    local square,why=Navigation.next(actor,home.x,home.y,home.z,
+        entry.profile.id,Walking.free,2.0,false,true)
+    if square then
+        walk(entry,square,{x=home.x,y=home.y})
+        entry.navStatus="RETURN_BASE"
+    else
+        entry.navStatus=why=="door opened" and "OPEN_DOOR" or
+            why=="window climbing" and "CLIMB_WINDOW" or "REPATH"
+    end
+end
 function Controller.update(player)
     if not Core.isSolo() then return end
     Controller.ticks=Controller.ticks+1
@@ -236,10 +273,13 @@ function Controller.update(player)
                 entry.navStatus="WAITING"
             elseif not entry.navDisabled and Controller.ticks>=entry.nextRequest then
                 if entry.state.active=="FOLLOW" then tickFollow(entry,player)
-                elseif entry.state.active=="GUARD" then tickGuard(entry) end
+                elseif entry.state.active=="GUARD" then tickGuard(entry)
+                elseif entry.state.active=="RETURN_BASE" then tickReturnBase(entry,player) end
             end
+            Movement.update(entry,player)
         else
             Walking.cancel(id,"entidade perdida")
+            Movement.clear(id,entry.actor)
             entry.navStatus="OFFLINE"
         end
     end
