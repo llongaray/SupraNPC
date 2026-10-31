@@ -1,4 +1,14 @@
 # Changelog — SupraNPC
+## 0.1.22-dev — 2026-10-31
+
+- Correção de postura AGGRESSIVE após teste em jogo: 96% -> 55% -> 0% de saúde, NPC priorizava SHOVE/APPROACH mas não sustentava combate.
+- `CombatTactics.lua`: elimina sequência defensiva SHOVE/BACKSTEP/WAIT da postura agressiva; arma corpo a corpo prioriza SWING a alcance e desarmado prioriza SHOVE, sem fuga automática.
+- `NPCController.lua` + `NPCDefense.lua`: planejamento a cada 15 ticks e pulso leve de combate a cada 3 ticks com alvo já conhecido, sem consultar novamente todos os zumbis. Repetições respeitam `isAttacking`, cooldown de 260 ms após comando aceito, bloqueio por obstáculos e aliados e a morte do alvo.
+- `NPCPerception.lua`: prioriza zumbi alcançável que esteja atacando o jogador, exceto quando a ameaça ao próprio NPC está a alcance imediato.
+- Testes para ofensiva sustentada, pulso nativo, segurança e proteção do jogador no CI Lua 5.1.
+- **Ainda precisa ser confirmado em B42.13.1 real**: se `IsoPlayer:DoAttack` aciona dano e animações para um IsoPlayer adicional; testes Lua não garantem que o zumbi morra ou que o NPC sobreviva.
+- **Não altera**: reconhecimento de voz pendente da 0.1.21, persistência experimental, outras posturas, requisitos externos.
+
 ## 0.1.21-dev — 2026-10-31
 
 - Novo `VoiceHotkey.lua`: tecla configurável em Opções > Teclas, inicialmente desvinculada para não afetar atalhos padrão, com ciclo de pressionar/soltar e contrato para um backend de reconhecimento.
