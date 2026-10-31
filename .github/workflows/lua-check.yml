@@ -38,6 +38,9 @@ jobs:
           lua5.1 tests/npc_controller_spec.lua
           lua5.1 tests/movement_behavior_spec.lua
           lua5.1 tests/navigation_obstacle_spec.lua
+          lua5.1 tests/territory_spec.lua
+          lua5.1 tests/map_knowledge_spec.lua
+          lua5.1 tests/movement_style_spec.lua
           lua5.1 tests/speech_spec.lua
           lua5.1 tests/npc_defense_spec.lua
           lua5.1 tests/combat_tactics_spec.lua
