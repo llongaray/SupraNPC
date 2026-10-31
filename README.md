@@ -2,7 +2,7 @@
 
 Mod open source de companheiros humanos para **Project Zomboid Build 42.13.1** (Lua/Kahlua 5.1), em desenvolvimento.
 
-**Versão atual: 0.1.17-dev — FOLLOW a 1,3 tile, navegação local com portas/janelas e bloqueio de ataques através de obstáculos.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
+**Versão atual: 0.1.18-dev — NPCs agacham, tentam correr, escalam janelas seguras e compartilham territórios definidos no mapa.** O spawn e a renderização dos dois NPCs `IsoPlayer` foram **observados em jogo** nas capturas de 31/10/2026, mas navegação, HUD, save/load, IA e roupas novas ainda precisam de validação. O editor sequencial de jogador e NPCs já foi validado em jogo. O código de spawn foi integrado a partir do protótipo [ArayHumanNPCTest](https://github.com/llongaray/ArayHumanNPCTest), mas **a integração nova ainda não foi validada in-game**. Use um **save novo e descartável**.
 
 ## Instalação direta via Git
 
@@ -19,6 +19,19 @@ git -C "$env:USERPROFILE\Zomboid\mods\SupraNPC" pull origin main
 ```
 
 O diretório `SupraNPC/42/mod.info` fica dentro da raiz clonada. Ative o mod no menu Mods do jogo.
+
+## Novidades 0.1.18-dev — furtividade, movimento e base no mapa
+
+- **Movimento automático:** WALK, SNEAK e RUN por API nativa IsoPlayer. Agacha quando o jogador agacha ou há inimigos distantes, tenta correr durante fuga e quando fica mais de 5,5 tiles para trás. O roteador evita tiles próximos de zumbis e permite afastar-se quando cercado.
+- **Portas e janelas:** continua tentando abrir portas e janelas destrancadas; janela só é escalada se aberta, não barricada, sem vidro quebrado perigoso, destino livre, sem zumbis próximos e canClimbThrough retorna verdadeiro. Usa climbThroughWindow nativo (não teleporta). Suspende novas ordens enquanto a animação de escalada prossegue.
+- **BASE de NPCs:** usando lápis/caneta e a ferramenta de anotações de TEXTO do mapa original, escreva **NPC:BASE:A** e **NPC:BASE:B** em cantos opostos da casa. O retângulo entre os pontos vira a base da equipe, persistida no ModData do jogador. Uma anotação **NPC:BASE** sozinha define uma área 7x7 inicial.
+- **Retirada:** em situação de perigo, tenta fugir na direção da base usando rota transitável e evitando zumbis; se não houver acesso seguro, recua localmente. Há a ordem de menu **Retornar para base** e comando por ditado **"Yong, volta para base"**.
+- **Conhecimento do mapa:** notas NPC:LOOT, NPC:CLEAR, NPC:DANGER, NPC:RALLY, NPC:SUPPLY e NPC:HOSPITAL são classificadas e ficam disponíveis à equipe para futuros sistemas de missão. Notas comuns e ícones também são preservados como pontos de interesse.
+- **Limitações:** a base é designada pelo jogador, sem validação física de cercamento/segurança. A delimitação ainda não tem overlay gráfico. Saque e limpeza de áreas marcadas NÃO são executados nesta versão. Dependendo da API B42, a leitura das coordenadas poderá exigir abrir o mapa; o conhecimento previamente salvo é preservado.
+
+**Interações experimentais na Build 42.13.1:** confirmar animações de corrida, agachamento, escalada e leitura do mapa no jogo real. Testes Lua passam, mas não reproduzem a engine.
+
+[Checklist e instruções da v0.1.18](docs/TEST_CHECKLIST_0.1.18.md).
 
 ## Ajustes após o teste de 31/10/2026 (v0.1.12-dev)
 
