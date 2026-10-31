@@ -217,6 +217,21 @@ function Flow.onMainClick(creation, button, x, y, original)
     return true
 end
 
+-- B42: ISButton guarda onclick como referencia no momento da criacao.
+-- Alterar o metodo da classe nao atualiza botoes ja instanciados.
+function Flow.bindButtons()
+    local s = screen()
+    if not s then return end
+    local m = s.charCreationMain
+    local p = s.charCreationProfession
+    if m and m.playButton then
+        m.playButton.onclick = CharacterCreationMain.onOptionMouseDown
+    end
+    if p and p.backButton then
+        p.backButton.onclick = CharacterCreationProfession.onOptionMouseDown
+    end
+end
+
 function Flow.install()
     if Flow.installed then return end
     if not CharacterCreationMain or not CharacterCreationMain.onOptionMouseDown or
@@ -263,8 +278,35 @@ function Flow.install()
             self:drawText("SUPRANPC: " .. Flow.error, 22, 60, 1, 0.3, 0.3, 1, UIFont.Small)
         end
     end
+    -- Se os botoes ja existem, corrigir a referencia de callback agora.
+    Flow.bindButtons()
+
+    -- Se as telas forem criadas DEPOIS da instalacao do mod, reatribuir
+    -- callbacks apos o create(), evitando que apontem para o metodo vanilla.
+    local oldCreateMain = CharacterCreationMain.create
+    if oldCreateMain then
+        CharacterCreationMain.create = function(self, ...)
+            local result = oldCreateMain(self, ...)
+            if self.playButton then
+                self.playButton.onclick = CharacterCreationMain.onOptionMouseDown
+            end
+            return result
+        end
+    end
+
+    local oldCreateProf = CharacterCreationProfession.create
+    if oldCreateProf then
+        CharacterCreationProfession.create = function(self, ...)
+            local result = oldCreateProf(self, ...)
+            if self.backButton then
+                self.backButton.onclick = CharacterCreationProfession.onOptionMouseDown
+            end
+            return result
+        end
+    end
+
     Flow.installed = true
-    Core.log("Editor sequencial de NPCs instalado (NEXT final interceptado).")
+    Core.log("Editor sequencial e callbacks dos botoes NEXT/BACK instalados.")
 end
 
 Core.TeamFlow = Flow
