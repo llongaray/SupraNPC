@@ -75,14 +75,21 @@ local function onGameBoot()
     Core.log("Versao " .. Core.VERSION .. " carregada; alvo B42.13.1.")
     TeamSetup.install()
     TeamFlow.install()
+    TeamFlow.bindButtons()
 end
 
 if Events then
     if Events.OnGameBoot then Events.OnGameBoot.Add(onGameBoot) end
     -- Algumas builds inicializam os painéis do menu depois de OnGameBoot.
     if Events.OnMainMenuEnter then Events.OnMainMenuEnter.Add(function()
+        -- Permite configurar uma equipe nova ao voltar ao menu para outra partida.
+        -- A equipe da partida antiga foi persistida no save pelo OnNewGame.
+        Core.prompted = false
+        Core.pendingRoster = nil
+        TeamSetup.openWindow = nil
         TeamSetup.install()
         TeamFlow.install()
+        TeamFlow.bindButtons()
     end) end
     if Events.OnNewGame then Events.OnNewGame.Add(onNewGame) end
     if Events.OnGameStart then Events.OnGameStart.Add(onGameStart) end
