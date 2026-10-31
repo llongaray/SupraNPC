@@ -56,10 +56,15 @@ local function takeProfession()
             selected[#selected + 1] = row.item
         end
     end
+    -- OnInitWorld do jogo lê DIRETAMENTE listboxTraitSelected.items.
+    -- Guardar as linhas originais, sem reconstituir UI/Java no loading.
+    local rows = {}
+    for i, row in ipairs(p.listboxTraitSelected.items or {}) do rows[i] = row end
     return {
         index = p.listboxProf.selected or 1,
         definition = p.profession,
-        traits = selected
+        traits = selected,
+        rows = rows
     }
 end
 
@@ -174,25 +179,45 @@ end
 
 local function restorePlayer()
     local session = Flow.session
-    if not session then return end
+    if not session then error("sessao do player ausente") end
     local s = screen()
-    if not s then return end
+    if not s or not session.playerDescriptor then error("descricao do jogador indisponivel") end
+
+    Core.log("RESTORE-1: restaurando descriptor/avatar original, SEM recriar IsoSurvivor")
     s.desc = session.playerDescriptor
-    if session.playerAvatar then
-        s.avatar = session.playerAvatar
-        local editor = s.charCreationMain
-        if editor and editor.avatarPanel and editor.setAvatarFromUI then
-            editor:setAvatarFromUI()
-        end
-    else
-        attachAvatar(s)
+    s.avatar = session.playerAvatar
+
+    -- Nao chamar restoreProfession()/resetBuild()/onSelectProf():
+    -- essas rotinas redesenham o avatar e modificam APIs Java no exato
+    -- momento em que o jogo transita para LoadingQueueState.
+    local p = s.charCreationProfession
+    local saved = session.playerProfession
+    if not p or not saved or not p.listboxTraitSelected or
+       type(saved.rows) ~= "table" then
+        error("snapshot da profissao original invalido")
     end
-    restoreProfession(session.playerProfession)
+    Core.log("RESTORE-2: restaurando linhas originais da lista de traits")
+    p.profession = saved.definition
+    p.listboxProf.selected = saved.index
+    local rows = {}
+    for i, row in ipairs(saved.rows) do rows[i] = row end
+    p.listboxTraitSelected.items = rows
+
     local editor = s.charCreationMain
-    if editor and editor.forenameEntry and editor.surnameEntry then
-        editor.forenameEntry:setText(session.playerFirst)
-        editor.surnameEntry:setText(session.playerLast)
+    if not editor or not editor.forenameEntry or not editor.surnameEntry then
+        error("editor de nome do jogador indisponivel")
     end
+    editor.forenameEntry:setText(session.playerFirst)
+    editor.surnameEntry:setText(session.playerLast)
+    -- A chamada vanilla initPlayer() usa esses controles para a voz.
+    -- Apenas restaurar valores nativos; nao substituir funcoes do jogo.
+    if editor.voiceTypeCombo and session.playerVoiceChoice then
+        editor.voiceTypeCombo.selected = session.playerVoiceChoice
+    end
+    if editor.voicePitchSlider and session.playerVoicePitch ~= nil then
+        editor.voicePitchSlider:setCurrentValue(session.playerVoicePitch, true)
+    end
+    Core.log("RESTORE-3: player/traits/nome/voz restaurados sem atualizar UI do avatar")
 end
 
 local function cancelNPC()
@@ -209,12 +234,14 @@ local function cancelNPC()
 end
 
 local function finishNPCs(creation, original, button, x, y)
+    Core.log("FINISH-1: validando fichas antes de restaurar player")
     local valid, reason = Roster.validate(Core.pendingRoster, true)
     if not valid then
         Flow.error = tostring(reason)
         Core.log("Impedindo carregamento: " .. Flow.error)
         return true
     end
+    Core.log("FINISH-2: fichas validas; iniciando restauracao segura")
     -- O metodo vanilla initPlayer() NAO deve ser substituido por uma funcao vazia:
     -- o motor precisa da transicao normal para nome/voz quando carrega o mundo.
     local restored, restoreError = pcall(restorePlayer)
@@ -312,7 +339,10 @@ function Flow.onMainClick(creation, button, x, y, original)
             playerAvatar = s.avatar,
             playerProfession = takeProfession(),
             playerFirst = creation.forenameEntry:getText(),
-            playerLast = creation.surnameEntry:getText()
+            playerLast = creation.surnameEntry:getText(),
+            playerVoiceChoice = creation.voiceTypeCombo and creation.voiceTypeCombo.selected,
+            playerVoicePitch = creation.voicePitchSlider and
+                creation.voicePitchSlider:getCurrentValue()
         }
         Core.log("Jogador concluido; iniciando criacao sequencial de " .. roster.count .. " NPC(s).")
         enterNPC(1)
