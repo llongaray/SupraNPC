@@ -285,6 +285,10 @@ function Sidebar:createChildren()
     self.voiceEntry=ISTextEntryBox:new("",8,base+19,188,26)
     self.voiceEntry:initialise()
     self.voiceEntry:instantiate()
+    local panel=self
+    self.voiceEntry.onCommandEntered=function()
+        panel:onVoice()
+    end
     self:addChild(self.voiceEntry)
     local send=ISButton:new(202,base+19,60,26,"Enviar",self,self.onVoice)
     send:initialise()
