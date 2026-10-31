@@ -116,5 +116,18 @@ ticks(15)
 assert(Controller.get("npcA").state.active=="IDLE")
 assert(Controller.get("npcA").navStatus=="WAITING")
 assert(not movement.active)
+-- Changing stance during a threat must discard the previous combat state.
+npc.x=0
+local z3=newZombie()
+zombies={z3}
+assert(Controller.stance("npcA","PASSIVE"))
+ticks(15)
+assert(Controller.get("npcA").state.active=="RETREAT")
+assert(not z3.down) -- passive must not shove
+assert(Controller.stance("npcA","AGGRESSIVE"))
+assert(Controller.get("npcA").state.active=="IDLE")
+ticks(15)
+assert(Controller.get("npcA").state.active=="SELF_DEFEND")
+assert(z3.down) -- aggressive immediately switches to attack
 Controller.clear()
 print("[SupraNPC] defense_controller_integration_spec: OK")
