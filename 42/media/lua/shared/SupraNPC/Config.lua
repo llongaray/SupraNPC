@@ -4,7 +4,7 @@ local Core = require("SupraNPC/Constants")
 local Config = {}
 
 Config.RULES = {
-    followDistance = {min = 1.0, max = 8.0, default = 2.5},
+    followDistance = {min = 1.0, max = 8.0, default = 1.3},
     guardRadius = {min = 1.0, max = 20.0, default = 5.0},
     protectRadius = {min = 2.0, max = 25.0, default = 8.0},
     thinkInterval = {min = 5, max = 120, default = 20, integer = true},
