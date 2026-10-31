@@ -73,7 +73,7 @@ function A.execute(actor,target,kind,player,team)
     (kind~="SHOVE" and kind~="SWING" and kind~="GROUND") then
     return false,"invalid melee action" end
  local md=get(actor,"getModData")
- if md and md.SupraNPC_IsNPC~=true then return false,"not an owned NPC" end
+ if not md or md.SupraNPC_IsNPC~=true then return false,"not an owned NPC" end
  local chosen,d=A.choose(actor,target)
  if not d or (kind=="GROUND" and chosen~="GROUND") or
     (kind=="SHOVE" and d>1.42) or (kind=="SWING" and d>A.MELEE_REACH) then
