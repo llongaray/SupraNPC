@@ -77,6 +77,10 @@ end
 
 if Events then
     if Events.OnGameBoot then Events.OnGameBoot.Add(onGameBoot) end
+    -- Algumas builds inicializam os painéis do menu depois de OnGameBoot.
+    if Events.OnMainMenuEnter then Events.OnMainMenuEnter.Add(function()
+        TeamSetup.install()
+    end) end
     if Events.OnNewGame then Events.OnNewGame.Add(onNewGame) end
     if Events.OnGameStart then Events.OnGameStart.Add(onGameStart) end
     if Events.OnPlayerUpdate then Events.OnPlayerUpdate.Add(onPlayerUpdate) end
