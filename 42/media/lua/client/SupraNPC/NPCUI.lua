@@ -169,6 +169,8 @@ local function dispatch(id, cmd, option)
     local profile=profileById(id)
     Speech.playerCommand(player,profile and profile.firstName or "Companheiro",
         cmd,option,ok)
+    local npc=Adapter.get(id)
+    if npc then Speech.npcReply(npc,cmd,option,ok) end
     HUD.feedback = {
         id = id, text = ok and
             (cmd == "STANCE" and ("Postura: " .. tostring(option)) or
